@@ -96,3 +96,10 @@ To test connections database and verify `goose` migrations:
 
 1. `docker compose up`: to start all the containers.
 2. `goose postgres "postgres://{USER}:{PASSWORD}@localhost:5432/{DATABASE_NAME}?sslmode=disable"` where each of the variables can be found in the `.env` file.
+3. `docker compose down -v`: stop all containers and remove all volumes.
+
+OR using the `Makefile`:
+1. `docker compose up`: to start all the containers.
+2. `make goose-up`: apply all up migrations.
+3. `make goose-down`: apply all down migrations.
+4. `docker compose down -v`: stop all containers and remove all volumes.
