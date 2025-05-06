@@ -1,0 +1,23 @@
+
+services:
+  auth_db:
+    image: postgres:latest
+    container_name: banking_auth_db
+    restart: always
+    environment:
+      POSTGRES_DB: ${AUTH_DB_NAME}
+      POSTGRES_USER: ${AUTH_DB_USER}
+      POSTGRES_PASSWORD: ${AUTH_DB_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    networks:
+          - backend
+
+volumes:
+  pg_data:
+
+networks:
+  backend:
+

@@ -1,0 +1,13 @@
+version: "2"
+sql:
+  - schema: "db/schema"
+    queries: "db/queries"
+    engine: "postgresql"
+    gen:
+      go:
+        out: "db/sqlc"
+        overrides:
+        - db_type: uuid
+          go_type: github.com/google/uuid.UUID
+        - db_type: timestamptz
+          go_type: time.Time
