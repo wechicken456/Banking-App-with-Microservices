@@ -2,7 +2,14 @@
 
 ## 📌 Architecture Overview
 
-This project is a local-first, event-driven banking backend written in **Golang**, focusing on **scalability**, **reliability**, and **eventual consistency**. The system uses **gRPC** for inter-service communication, **Redis** for background job queueing, and **PostgreSQL** (self-hosted) for data storage. Everything is containerized via **Docker**, with future expansion to **Kubernetes**.
+Banking App written in **Golang** to learn about implementation of microservices. The system uses **gRPC** for inter-service communication, **Redis** for background job queueing, and **PostgreSQL** (self-hosted) for data storage. Everything is containerized via **Docker**, with future expansion to **Kubernetes**.
+
+**Current progress**: 
+
+1. Finished setting up PostgreSQL on **docker**.
+2. Implementing the `auth` service.
+
+Check [JOURNAL.md](./JOURNAL.md) for my dev journal.
 
 ---
 

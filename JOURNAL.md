@@ -9,7 +9,7 @@ Finished setting up the `auth` database for the `auth` microservice.
 
 
 
-# Setup gRPC for auth (May 9)
+# Implement auth (May 9)
 
 Tasks done:
 
