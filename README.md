@@ -15,14 +15,14 @@ Check [JOURNAL.md](./JOURNAL.md) for my dev journal.
 
 ## 🧩 Microservices
 
-| Service              | Responsibilities                                                                 |
-|----------------------|-----------------------------------------------------------------------------------|
-| **auth-service**     | User signup/login, token generation (JWT), password hashing, token verification   |
-| **user-service**     | Account profiles, user metadata, account state management                         |
-| **payment-service**  | Initiate payments, handle authorization, emit events to `transaction-service`     |
-| **transaction-service** | Ensure ACID transactions and consistency, log events, rollback via outbox/saga |
-| **notification-service** | Send async email alerts via Gmail SMTP using Redis queue                       |
-| **api-gateway**      | Entry point for frontend; routes HTTP requests to services, rate-limits, etc.     |
+| Service                   | Responsibilities                                                                 |
+|---------------------------|-----------------------------------------------------------------------------------|
+| **auth-service**          | User signup/login, token generation (JWT), password hashing, token verification   |
+| **user-service**          | Account profiles, user metadata, account state management                         |
+| **transfer-service**      | transfer money between accounts. gRPC to transaction service and user management    |
+| **transaction-service**   | Ensure ACID transactions and consistency, log events, rollback via outbox/saga |
+| **notification-service**  | Send async email alerts via Gmail SMTP using Redis queue                       |
+| **api-gateway**           | Entry point for frontend; routes HTTP requests to services, rate-limits, etc.     |
 
 ---
 
@@ -46,6 +46,8 @@ Check [JOURNAL.md](./JOURNAL.md) for my dev journal.
   - Idempotency keys for retry-safe actions
 
 ---
+
+![Flowchart](https://www.mermaidchart.com/raw/48a2029d-139d-4572-b015-3b6bcbcac784?theme=light&version=v0.1&format=svg)
 
 ## 🗂️ Project Directory Structure
 
