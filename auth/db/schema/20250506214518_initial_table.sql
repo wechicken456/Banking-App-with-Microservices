@@ -5,7 +5,9 @@ CREATE TABLE IF NOT EXISTS "users"(
     email varchar(255) NOT NULL,
     password_hash TEXT NOT NULL,
     created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+
+    UNIQUE(email)
 );
 
 CREATE TABLE IF NOT EXISTS "refresh_tokens" (
