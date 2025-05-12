@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+option go_package = "./proto";
+
+service AccountService {
+    rpc CreateAccount (CreateAccountRequest) returns (CreateAcocuntResponse) {};
+}
+
+message CreateAccountRequest {
+    string user_id = 1;
+    int64 balance = 2;
+}
+
+message CreateAcocuntResponse {
+    int64 status = 1;
+    string error = 2;
+    string account_id = 3;
+}

@@ -18,9 +18,9 @@ Check [JOURNAL.md](./JOURNAL.md) for my dev journal.
 | Service                   | Responsibilities                                                                 |
 |---------------------------|-----------------------------------------------------------------------------------|
 | **auth-service**          | User signup/login, token generation (JWT), password hashing, token verification   |
-| **user-service**          | Account profiles, user metadata, account state management                         |
+| **user-service**          | Account profiles, user metadata, account state management, view all accounts linked to the user profile, access transaction histories for each account.                         |
 | **transfer-service**      | transfer money between accounts. gRPC to transaction service and user management    |
-| **transaction-service**   | Ensure ACID transactions and consistency, log events, rollback via outbox/saga |
+| **transaction-service**   | Ensure ACID transactions and consistency, log events, rollback via outbox/saa|
 | **notification-service**  | Send async email alerts via Gmail SMTP using Redis queue                       |
 | **api-gateway**           | Entry point for frontend; routes HTTP requests to services, rate-limits, etc.     |
 
@@ -47,6 +47,7 @@ Check [JOURNAL.md](./JOURNAL.md) for my dev journal.
 
 ---
 
+
 ![Flowchart](https://www.mermaidchart.com/raw/48a2029d-139d-4572-b015-3b6bcbcac784?theme=light&version=v0.1&format=svg)
 
 ## 🗂️ Project Directory Structure
@@ -67,7 +68,7 @@ banking-microservices/
 │   ├── db/                     #  goose migration files, sql schema and queries, sqlc
 |   |   |--- schema
 |   |   |--- queries
-|   |   |--- sqlc                   
+|   |   |--- sqlc 
 │   ├── config/                 # Env, config loader
 │   ├── tests/                  # Unit/integration tests
 │   ├── Dockerfile
@@ -83,7 +84,7 @@ banking-microservices/
 │   └── (same structure as above)
 │
 ├── notification-service/
-│   ├── worker/                 # Redis consumers
+│   ├── worker/                 # Redisconsumers
 │   ├── mailer/                 # Email logic
 │   └── (rest same as above)
 │
