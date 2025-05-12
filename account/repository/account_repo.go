@@ -25,7 +25,7 @@ func (r *AccountRepository) CreateAccount(ctx context.Context, user *model.User)
 		ID:            uuid.New(),
 		UserID:        user.UserID,
 		Balance:       user.Balance,
-		AccountNumber: utils.GenerateAccountNumber(),
+		AccountNumber: utils.RandomAccountNumber(),
 	})
 	if err != nil {
 		return nil, err
@@ -33,7 +33,7 @@ func (r *AccountRepository) CreateAccount(ctx context.Context, user *model.User)
 	return &createdAccount, nil
 }
 
-func (r *AccountRepository) GetAccount(ctx context.Context, accountNumber int64) (*sqlc.Account, error) {
+func (r *AccountRepository) GetAccountByAccountNumber(ctx context.Context, accountNumber int64) (*sqlc.Account, error) {
 	account, err := r.queries.GetAccountByAccountNumber(ctx, accountNumber)
 	if err != nil {
 		return nil, err
@@ -49,7 +49,7 @@ func (r *AccountRepository) GetAccountByID(ctx context.Context, id uuid.UUID) (*
 	return &account, nil
 }
 
-func (r *AccountRepository) GetAccountByUserID(ctx context.Context, userID string) ([]sqlc.Account, error) {
+func (r *AccountRepository) GetAccountByUserID(ctx context.Context, userID uuid.UUID) ([]sqlc.Account, error) {
 	accounts, err := r.queries.GetAccountByUserID(ctx, userID)
 	if err != nil {
 		return nil, err
@@ -68,6 +68,3 @@ func (r *AccountRepository) AddToAccountBalance(ctx context.Context, accountNumb
 	}
 	return &account, nil
 }
-
-
-

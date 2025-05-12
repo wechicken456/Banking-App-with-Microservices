@@ -223,3 +223,15 @@ Right now, implementing orchestration-based is simpler. In the future, I'm inter
 
 # Decided to merge the Account and Transaction services together since they are tightly coupled (May 12)
 
+## PostgreSQL concurrent statements in the SAME transaction
+
+If multiple concurrent statements are running within the SAME transaction, PostgreSQL is gonna throw an error like: 
+
+```bash
+Error:      	Received unexpected error:
+        	            	pq: unexpected Parse response 'C'
+```
+
+This is because we're trying to start a new statement before reading all of the rows of the preceding statement. 
+
+In practice, this should never happen as developers shouldn't run concurrent statements within the same transaction. What they mean to do is run multiple concurrent TRANSACTIONs, NOT STATEMENTs.

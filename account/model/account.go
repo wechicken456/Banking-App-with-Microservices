@@ -1,13 +1,15 @@
 package model
 
+import "github.com/google/uuid"
+
 type User struct {
-	UserID  string `json:"user_id"`
-	Balance int64  `json:"balance"`
+	UserID  uuid.UUID `json:"user_id"`
+	Balance int64     `json:"balance"`
 }
 
 type Account struct {
-	AccountID     string `json:"account_id"`
-	UserID        string `json:"user_id"`
-	Balance       int64  `json:"balance"`
-	AccountNumber string `json:"account_number"`
+	AccountID     uuid.UUID `json:"account_id"`
+	UserID        uuid.UUID `json:"user_id"`
+	Balance       int64     `json:"balance"`
+	AccountNumber int64     `json:"account_number"`
 }

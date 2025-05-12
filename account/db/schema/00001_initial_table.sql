@@ -2,11 +2,13 @@
 -- +goose StatementBegin
 CREATE TABLE IF NOT EXISTS accounts (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id varchar NOT NULL,
-    account_number bigint UNIQUE NOT NULL,
+    user_id UUID NOT NULL,
+    account_number bigint NOT NULL,
     balance bigint NOT NULL DEFAULT 0,
     created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+
+    UNIQUE(account_number)
 );
 
 -- CREATE INDEX to optimize queries on the account_number column since we'll probably be searching by account number frequently.

@@ -24,5 +24,8 @@ FOR EACH ROW EXECUTE FUNCTION update_timestamp();
 
 -- +goose Down
 -- +goose StatementBegin
-SELECT 'down SQL query';
+DROP TRIGGER trigger_update_timestamp_transactions ON transactions;
+DROP TABLE transactions;
+DROP INDEX idx_transaction_account_id;
+DROP INDEX idx_transaction_transfer_id;
 -- +goose StatementEnd

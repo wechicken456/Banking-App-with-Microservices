@@ -3,6 +3,8 @@ package utils
 import (
 	"account/model"
 	"math/rand"
+
+	"github.com/google/uuid"
 )
 
 const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-+"
@@ -35,11 +37,20 @@ func RandomEmail() string {
 
 func RandomUser() *model.User {
 	return &model.User{
-		UserID:  RandomString(16),
+		UserID:  uuid.New(),
 		Balance: int64(RandMinMax(0, 100_000_000_000_000)),
 	}
 }
 
-func GenerateAccountNumber() int64 {
+func RandomAccountNumber() int64 {
 	return int64(RandMinMax(1_000_000_000, 1_000_000_000_000_000_000))
+}
+
+func RandomAccount() *model.Account {
+	return &model.Account{
+		AccountID: uuid.New(),
+		UserID:    uuid.New(),
+		AccountNumber: RandomAccountNumber(),
+		Balance:       int64(RandMinMax(0, 100)),
+	}
 }

@@ -12,9 +12,20 @@ import (
 
 type Account struct {
 	ID            uuid.UUID    `json:"id"`
-	UserID        string       `json:"user_id"`
+	UserID        uuid.UUID    `json:"user_id"`
 	AccountNumber int64        `json:"account_number"`
 	Balance       int64        `json:"balance"`
 	CreatedAt     sql.NullTime `json:"created_at"`
 	UpdatedAt     sql.NullTime `json:"updated_at"`
+}
+
+type Transaction struct {
+	ID              uuid.UUID     `json:"id"`
+	AccountID       uuid.NullUUID `json:"account_id"`
+	TransactionType string        `json:"transaction_type"`
+	Amount          int64         `json:"amount"`
+	Status          string        `json:"status"`
+	TransferID      uuid.NullUUID `json:"transfer_id"`
+	CreatedAt       sql.NullTime  `json:"created_at"`
+	UpdatedAt       sql.NullTime  `json:"updated_at"`
 }

@@ -46,7 +46,7 @@ RETURNING id, user_id, account_number, balance, created_at, updated_at
 type CreateAccountParams struct {
 	ID            uuid.UUID `json:"id"`
 	AccountNumber int64     `json:"account_number"`
-	UserID        string    `json:"user_id"`
+	UserID        uuid.UUID `json:"user_id"`
 	Balance       int64     `json:"balance"`
 }
 
@@ -67,6 +67,17 @@ func (q *Queries) CreateAccount(ctx context.Context, arg CreateAccountParams) (A
 		&i.UpdatedAt,
 	)
 	return i, err
+}
+
+const deleteAccountByAccountNumber = `-- name: DeleteAccountByAccountNumber :exec
+DELETE FROM accounts
+WHERE account_number = $1
+RETURNING id, user_id, account_number, balance, created_at, updated_at
+`
+
+func (q *Queries) DeleteAccountByAccountNumber(ctx context.Context, accountNumber int64) error {
+	_, err := q.db.ExecContext(ctx, deleteAccountByAccountNumber, accountNumber)
+	return err
 }
 
 const getAccountByAccountNumber = `-- name: GetAccountByAccountNumber :one
@@ -109,7 +120,7 @@ const getAccountByUserID = `-- name: GetAccountByUserID :many
 SELECT id, user_id, account_number, balance, created_at, updated_at FROM accounts WHERE user_id = $1
 `
 
-func (q *Queries) GetAccountByUserID(ctx context.Context, userID string) ([]Account, error) {
+func (q *Queries) GetAccountByUserID(ctx context.Context, userID uuid.UUID) ([]Account, error) {
 	rows, err := q.db.QueryContext(ctx, getAccountByUserID, userID)
 	if err != nil {
 		return nil, err
