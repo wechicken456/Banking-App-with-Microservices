@@ -11,6 +11,32 @@ import (
 	"github.com/google/uuid"
 )
 
+const addToAccountBalance = `-- name: AddToAccountBalance :one
+UPDATE accounts
+SET balance = balance + $1
+WHERE account_number = $2
+RETURNING id, user_id, account_number, balance, created_at, updated_at
+`
+
+type AddToAccountBalanceParams struct {
+	Amount        int64 `json:"amount"`
+	AccountNumber int64 `json:"account_number"`
+}
+
+func (q *Queries) AddToAccountBalance(ctx context.Context, arg AddToAccountBalanceParams) (Account, error) {
+	row := q.db.QueryRowContext(ctx, addToAccountBalance, arg.Amount, arg.AccountNumber)
+	var i Account
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.AccountNumber,
+		&i.Balance,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const createAccount = `-- name: CreateAccount :one
 INSERT INTO accounts (id, account_number, user_id, balance)
 VALUES ($1, $2, $3, $4)
@@ -145,30 +171,4 @@ func (q *Queries) ListAccounts(ctx context.Context, limit int32) ([]Account, err
 		return nil, err
 	}
 	return items, nil
-}
-
-const updateAccountBalance = `-- name: UpdateAccountBalance :one
-UPDATE accounts
-SET balance = balance + $1
-WHERE id = $2
-RETURNING id, user_id, account_number, balance, created_at, updated_at
-`
-
-type UpdateAccountBalanceParams struct {
-	Amount int64     `json:"amount"`
-	ID     uuid.UUID `json:"id"`
-}
-
-func (q *Queries) UpdateAccountBalance(ctx context.Context, arg UpdateAccountBalanceParams) (Account, error) {
-	row := q.db.QueryRowContext(ctx, updateAccountBalance, arg.Amount, arg.ID)
-	var i Account
-	err := row.Scan(
-		&i.ID,
-		&i.UserID,
-		&i.AccountNumber,
-		&i.Balance,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
 }

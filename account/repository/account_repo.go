@@ -56,3 +56,18 @@ func (r *AccountRepository) GetAccountByUserID(ctx context.Context, userID strin
 	}
 	return accounts, nil
 }
+
+// amount could be negative or positive
+func (r *AccountRepository) AddToAccountBalance(ctx context.Context, accountNumber int64, amount int64) (*sqlc.Account, error) {
+	account, err := r.queries.AddToAccountBalance(ctx, sqlc.AddToAccountBalanceParams{
+		AccountNumber: accountNumber,
+		Amount:        amount,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &account, nil
+}
+
+
+

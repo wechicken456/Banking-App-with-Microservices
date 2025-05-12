@@ -12,43 +12,44 @@ Banking App written in **Golang** to learn about implementation of microservices
 Check [JOURNAL.md](./JOURNAL.md) for my dev journal.
 
 ---
-
 ## 🧩 Microservices
 
 | Service                   | Responsibilities                                                                 |
 |---------------------------|-----------------------------------------------------------------------------------|
-| **auth-service**          | User signup/login, token generation (JWT), password hashing, token verification   |
-| **user-service**          | Account profiles, user metadata, account state management, view all accounts linked to the user profile, access transaction histories for each account.                         |
-| **transfer-service**      | transfer money between accounts. gRPC to transaction service and user management    |
-| **transaction-service**   | Ensure ACID transactions and consistency, log events, rollback via outbox/saa|
-| **notification-service**  | Send async email alerts via Gmail SMTP using Redis queue                       |
-| **api-gateway**           | Entry point for frontend; routes HTTP requests to services, rate-limits, etc.     |
+| **auth-service**          | User signup/login, JWT issuance and validation, password hashing                 |
+| **user-service**          | Manages user profiles, user metadata, and links users to their accounts          |
+| **account-service**       | Manages account details, balances, deposits, withdrawals, and transaction history (ACID guarantees) |
+| **transfer-service**      | Orchestrates fund transfers: validates source/target accounts, invokes debit/credit via gRPC, ensures consistency |
+| **notification-service**  | Sends asynchronous email alerts (e.g. transfer success/failure) using Redis + Gmail SMTP |
+| **api-gateway**           | Entry point for client requests; routes HTTP to internal services, handles rate limiting, auth forwarding |
 
 ---
 
 ## 🧱 Architecture Patterns
 
 - **Communication**:  
-  - gRPC (intra-service)  
-  - HTTP via API Gateway (external/client-facing)
+  - gRPC (internal service-to-service)  
+  - HTTP (client-facing via API Gateway)
 
 - **Asynchronous Processing**:  
-  - Redis queue for background jobs (e.g. email notifications, retries)
+  - Redis queue for background tasks like email alerts and retries
 
 - **Database**:  
-  - PostgreSQL for all services (isolated schema per service)
-  - Connection via `sqlx + `sqlc`  
+  - PostgreSQL (isolated schema per service)  
+  - Accessed via `sqlx` and `sqlc`  
   - Migrations managed with `goose`
 
 - **Transactional Integrity**:  
-  - Saga pattern for distributed transactions  
-  - Outbox pattern to ensure message delivery  
-  - Idempotency keys for retry-safe actions
+  - Core services maintain ACID within their DBs  
+  - Saga pattern used for distributed operations (e.g., fund transfers)  
+  - Outbox pattern ensures eventual message delivery  
+  - Idempotency keys prevent duplicate processing
 
 ---
 
-
 ![Flowchart](https://www.mermaidchart.com/raw/48a2029d-139d-4572-b015-3b6bcbcac784?theme=light&version=v0.1&format=svg)
+
+---
 
 ## 🗂️ Project Directory Structure
 
@@ -62,38 +63,36 @@ banking-microservices/
 │   └── Dockerfile
 │
 ├── auth-service/
-│   ├── proto/                  # gRPC service definitions
-│   ├── handler/                # HTTP/gRPC handler logic
-│   ├── service/                # Business logic
-│   ├── db/                     #  goose migration files, sql schema and queries, sqlc
-|   |   |--- schema
-|   |   |--- queries
-|   |   |--- sqlc 
-│   ├── config/                 # Env, config loader
-│   ├── tests/                  # Unit/integration tests
-│   ├── Dockerfile
-│   └── main.go
+│   ├── proto/
+│   ├── handler/
+│   ├── service/
+│   ├── db/
+│   │   ├── schema/
+│   │   ├── queries/
+│   │   └── sqlc/
+│   ├── config/
+│   ├── tests/
+│   └── Dockerfile
 │
 ├── user-service/
 │   └── (same structure as above)
 │
-├── payment-service/
-│   └── (same structure as above)
+├── account-service/
+│   └── (same structure; handles both accounts and transactions)
 │
-├── transaction-service/
-│   └── (same structure as above)
+├── transfer-service/
+│   └── (same structure; orchestrates debit/credit with gRPC calls)
 │
 ├── notification-service/
-│   ├── worker/                 # Redisconsumers
-│   ├── mailer/                 # Email logic
+│   ├── worker/       # Redis consumers
+│   ├── mailer/       # Email logic
 │   └── (rest same as above)
 │
-├── proto/                      # Shared gRPC definitions
+├── proto/            # Shared gRPC definitions
 │
-|── docker-compose.yml
-|── .env
+├── docker-compose.yml
+├── .env
 
-```
 
 
 ## Testing

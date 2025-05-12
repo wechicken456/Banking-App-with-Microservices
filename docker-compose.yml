@@ -30,21 +30,6 @@ services:
     networks:
       - backend
   
-  transaction_db:
-    image: postgres:latest
-    container_name: banking_transaction_db
-    restart: always
-    environment:
-      POSTGRES_DB: ${TRANSACTION_DB_NAME}
-      POSTGRES_USER: ${TRANSACTION_DB_USER}
-      POSTGRES_PASSWORD: ${TRANSACTION_DB_PASSWORD}
-    ports:
-      - "5434:5432"
-    volumes:
-      - transaction_db_data:/var/lib/postgresql/data
-    networks:
-      - backend
-
   transfer_db:
     image: postgres:latest
     container_name: banking_transfer_db
@@ -54,7 +39,7 @@ services:
       POSTGRES_USER: ${TRANSFER_DB_USER}
       POSTGRES_PASSWORD: ${TRANSFER_DB_PASSWORD}
     ports:
-      - "5435:5432"
+      - "5434:5432"
     volumes:
       - transfer_db_data:/var/lib/postgresql/data
     networks:
@@ -63,7 +48,6 @@ services:
 volumes:
   auth_db_data:
   account_db_data:
-  transaction_db_data:
   transfer_db_data:
 
 

@@ -22,7 +22,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER trigger_update_timestamp
+CREATE TRIGGER trigger_update_timestamp_accounts
 BEFORE UPDATE ON accounts
 FOR EACH ROW EXECUTE FUNCTION update_timestamp();
 

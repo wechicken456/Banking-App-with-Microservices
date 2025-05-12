@@ -15,8 +15,9 @@ SELECT * FROM accounts WHERE account_number = $1;
 -- name: ListAccounts :many
 SELECT * FROM accounts ORDER BY id LIMIT $1;
 
--- name: UpdateAccountBalance :one
+
+-- name: AddToAccountBalance :one
 UPDATE accounts
 SET balance = balance + sqlc.arg(amount)
-WHERE id = sqlc.arg(id)
+WHERE account_number = sqlc.arg(account_number)
 RETURNING *;

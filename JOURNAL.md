@@ -220,3 +220,6 @@ Data dependencies among microservices such as creating an account requires a use
 
 Right now, implementing orchestration-based is simpler. In the future, I'm interested in implementing a choreography-based using Kafka :)
 
+
+# Decided to merge the Account and Transaction services together since they are tightly coupled (May 12)
+
