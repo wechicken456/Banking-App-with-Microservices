@@ -235,3 +235,8 @@ Error:      	Received unexpected error:
 This is because we're trying to start a new statement before reading all of the rows of the preceding statement. 
 
 In practice, this should never happen as developers shouldn't run concurrent statements within the same transaction. What they mean to do is run multiple concurrent TRANSACTIONs, NOT STATEMENTs.
+
+## PostgreSQL's `INSERT` will raise an error if multiple insertions have the same unique index (such as the primary key)
+
+INSERT into tables that lack unique indexes will not be blocked by concurrent activity. Tables with unique indexes might block if concurrent sessions perform actions that lock or modify rows matching the unique index values being inserted; the details are covered in Section 62.5. ON CONFLICT can be used to specify an alternative action to raising a unique constraint or exclusion constraint violation error. (See ON CONFLICT Clause [below](https://www.postgresql.org/docs/current/sql-insert.html).)
+

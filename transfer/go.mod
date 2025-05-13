@@ -1,4 +1,4 @@
-module account 
+module transfer 
 
 go 1.23.0
 
