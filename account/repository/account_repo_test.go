@@ -2,188 +2,370 @@ package repository
 
 import (
 	"account/db/initialize"
-	"account/db/sqlc"
 	"account/model"
 	"account/utils"
 	"context"
-	"database/sql"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	"github.com/joho/godotenv"
 	"github.com/stretchr/testify/require"
 )
 
-var testRepo *AccountRepository
-var testDB *sqlx.DB
+func setupTestDB(t *testing.T) (*sqlx.DB, func()) {
+	err := godotenv.Load("../.env")
+	require.NoError(t, err)
 
-func setupTestDB() func(t *testing.T) {
-	godotenv.Load("../.env")
-	testDB = initialize.ConnectDB()
-	testRepo = NewAccountRepository(testDB)
-
-	// Return a teardown function that will be run after each test
-	return func(t *testing.T) {
-		// Close the database connection
-		err := testDB.Close()
+	db := initialize.ConnectDB()
+	return db, func() {
+		err := db.Close()
 		require.NoError(t, err)
 	}
 }
 
+// create multiple concurrent goroutines that create different accounts.
 func TestCreateAccount_Success(t *testing.T) {
-	var account *model.Account
-
-	teardown := setupTestDB()
-	defer teardown(t)
+	db, teardown := setupTestDB(t)
+	defer teardown()
+	repo := NewAccountRepository(db)
 
 	numTests := 10
-	errChan := make(chan error)
-	results := make(chan sqlc.Account)
-	txChan := make(chan *sql.Tx)
+	results := make(chan *model.Account, numTests)
+	errChan := make(chan error, numTests)
+
 	for i := 0; i < numTests; i++ {
 		go func() {
-			tx, err := testDB.BeginTx(context.Background(), nil)
-			q := testRepo.queries.WithTx(tx)
-			require.NoError(t, err)
+			tx, err := db.BeginTx(context.Background(), nil)
+			if err != nil {
+				errChan <- err
+				return
+			}
+			defer tx.Rollback()
 
-			account = utils.RandomAccount()
-			res, err := q.CreateAccount(context.Background(), sqlc.CreateAccountParams{
-				ID:            account.AccountID,
-				AccountNumber: account.AccountNumber,
-				UserID:        account.UserID,
-				Balance:       account.Balance,
-			})
-
-			errChan <- err
-			results <- res
-			txChan <- tx
+			txRepo := repo.WithTx(tx)
+			user := utils.RandomUser()
+			account, err := txRepo.CreateAccount(context.Background(), user)
+			if err != nil {
+				errChan <- err
+				return
+			}
+			if err := tx.Commit(); err != nil {
+				errChan <- err
+				return
+			}
+			results <- account
+			errChan <- nil
 		}()
 	}
 
+	createdAccounts := make([]*model.Account, 0, numTests)
 	for i := 0; i < numTests; i++ {
 		err := <-errChan
 		require.NoError(t, err)
-		res := <-results
-		require.NotEmpty(t, res)
-		tx := <-txChan
-		tx.Rollback()
+		account := <-results
+		require.NotEmpty(t, account)
+		require.NotEqual(t, uuid.Nil, account.AccountID)
+		require.NotZero(t, account.AccountNumber)
+		createdAccounts = append(createdAccounts, account)
+	}
+
+	// Cleanup the accounts we created to test
+	for _, account := range createdAccounts {
+		err := repo.DeleteAccountByAccountNumber(context.Background(), account.AccountNumber)
+		require.NoError(t, err)
 	}
 }
 
-// Same account number should fail
+// creating an account with the same account number should fail
 func TestCreateAccount_Fail(t *testing.T) {
-	var account *model.Account
+	db, teardown := setupTestDB(t)
+	defer teardown()
+	repo := NewAccountRepository(db)
 
-	teardown := setupTestDB()
-	defer teardown(t)
+	account := utils.RandomAccount()
 
-	tx, err := testDB.BeginTx(context.Background(), nil)
-	require.NoError(t, err)
-	defer tx.Rollback()
-	q := testRepo.queries.WithTx(tx)
+	_, err := repo.queries.CreateAccount(context.Background(), *convertToCreateAccountParams(account))
 	require.NoError(t, err)
 
-	account = utils.RandomAccount()
-	_, err = q.CreateAccount(context.Background(), sqlc.CreateAccountParams{
-		ID:            account.AccountID,
-		AccountNumber: account.AccountNumber,
-		UserID:        account.UserID,
-		Balance:       account.Balance,
-	})
-	require.NoError(t, err)
-	_, err = q.CreateAccount(context.Background(), sqlc.CreateAccountParams{
-		ID:            account.AccountID,
-		AccountNumber: account.AccountNumber,
-		UserID:        account.UserID,
-		Balance:       account.Balance,
-	})
+	// create the same account again
+
+	_, err = repo.queries.CreateAccount(context.Background(), *convertToCreateAccountParams(account))
 	require.Error(t, err)
 
+	// Cleanup the account we created to test
+	// Cleanup the accounts we created to test
+	err = repo.DeleteAccountByAccountNumber(context.Background(), account.AccountNumber)
+	require.NoError(t, err)
 }
 
 func TestGetAccountByAccountNumber_Success(t *testing.T) {
-	teardown := setupTestDB()
-	defer teardown(t)
+	db, teardown := setupTestDB(t)
+	defer teardown()
 
-	tx, err := testDB.BeginTx(context.Background(), nil)
+	repo := NewAccountRepository(db)
+	tx, err := db.BeginTx(context.Background(), nil)
 	require.NoError(t, err)
 	defer tx.Rollback()
-	q := testRepo.queries.WithTx(tx)
+	txRepo := repo.WithTx(tx)
 
-	account := utils.RandomAccount()
-	res1, err := q.CreateAccount(context.Background(), sqlc.CreateAccountParams{
-		ID:            account.AccountID,
-		AccountNumber: account.AccountNumber,
-		UserID:        account.UserID,
-		Balance:       account.Balance,
-	})
+	var createdAccount *model.Account
+	user := utils.RandomUser()
+	createdAccount, err = txRepo.CreateAccount(context.Background(), user)
 	require.NoError(t, err)
 
-	res2, err := q.GetAccountByAccountNumber(context.Background(), account.AccountNumber)
+	retrievedAccount, err := txRepo.GetAccountByAccountNumber(context.Background(), createdAccount.AccountNumber)
 	require.NoError(t, err)
-	require.NotEmpty(t, res2)
-	require.Equal(t, res1, res2)
+	require.Equal(t, createdAccount, retrievedAccount)
 }
 
-// verify that concurrent transactions that adds the same amount to an account updates the balance correctly
 func TestAddToAccountBalance_Success(t *testing.T) {
-	teardown := setupTestDB()
-	defer teardown(t)
+	db, teardown := setupTestDB(t)
+	defer teardown()
+	repo := NewAccountRepository(db)
 
-	createdAccountTx, err := testDB.BeginTx(context.Background(), nil)
+	var createdAccount *model.Account
+	tx, err := db.BeginTx(context.Background(), nil)
 	require.NoError(t, err)
-	defer createdAccountTx.Rollback()
-	q := testRepo.queries.WithTx(createdAccountTx)
-
-	account := utils.RandomAccount()
-	_, err = q.CreateAccount(context.Background(), sqlc.CreateAccountParams{
-		ID:            account.AccountID,
-		AccountNumber: account.AccountNumber,
-		UserID:        account.UserID,
-		Balance:       account.Balance,
-	})
-	createdAccountTx.Commit()
+	defer tx.Rollback()
+	txRepo := repo.WithTx(tx)
+	user := utils.RandomUser()
+	createdAccount, err = txRepo.CreateAccount(context.Background(), user)
+	require.NoError(t, err)
+	err = tx.Commit()
 	require.NoError(t, err)
 
 	addAmount := int64(1000)
 	numTests := 10
-	errChan := make(chan error)
-	results := make(chan sqlc.Account)
+	errChan := make(chan error, numTests)
+	results := make(chan *model.Account, numTests)
+
+	// create concurrent goroutines that add to the account balance
 	for i := 0; i < numTests; i++ {
 		go func() {
-			updateTx, err := testDB.BeginTx(context.Background(), nil)
-			require.NoError(t, err)
-			q := testRepo.queries.WithTx(updateTx)
-
-			res2, err := q.AddToAccountBalance(context.Background(), sqlc.AddToAccountBalanceParams{
-				AccountNumber: account.AccountNumber,
-				Amount:        addAmount,
-			})
+			tx, err := db.BeginTx(context.Background(), nil)
 			if err != nil {
-				updateTx.Rollback()
-			} else {
-				updateTx.Commit()
+				errChan <- err
+				return
 			}
-			errChan <- err
-			results <- res2
+			defer tx.Rollback()
+			txRepo := repo.WithTx(tx)
+			account, err := txRepo.AddToAccountBalance(context.Background(), createdAccount.AccountNumber, addAmount)
+			if err != nil {
+				errChan <- err
+				return
+			}
+			if err := tx.Commit(); err != nil {
+				errChan <- err
+				return
+			}
+			results <- account
+			errChan <- nil
 		}()
 	}
 
-	// check for errors
 	for i := 0; i < numTests; i++ {
 		err := <-errChan
 		require.NoError(t, err)
-		res := <-results
-		require.NotEmpty(t, res)
+		account := <-results
+		require.NotEmpty(t, account)
 	}
 
 	// check if the balance is updated correctly
-	res, err := testRepo.GetAccountByAccountNumber(context.Background(), account.AccountNumber)
+	finalAccount, err := repo.GetAccountByAccountNumber(context.Background(), createdAccount.AccountNumber)
 	require.NoError(t, err)
-	require.NotEmpty(t, res)
-	require.Equal(t, res.Balance, account.Balance+addAmount*int64(numTests))
+	expectedBalance := createdAccount.Balance + (addAmount * int64(numTests))
+	require.Equal(t, expectedBalance, finalAccount.Balance)
 
-	// delete the account that we created to test
-	err = testRepo.queries.DeleteAccountByAccountNumber(context.Background(), account.AccountNumber)
+	// Cleanup the account we created to test
+	err = repo.DeleteAccountByAccountNumber(context.Background(), createdAccount.AccountNumber)
 	require.NoError(t, err)
+}
+
+func TestDeleteAccountByAccountNumber_Success(t *testing.T) {
+	db, teardown := setupTestDB(t)
+	defer teardown()
+	repo := NewAccountRepository(db)
+
+	var createdAccount *model.Account
+	tx, err := db.BeginTx(context.Background(), nil)
+	require.NoError(t, err)
+	defer tx.Rollback()
+	txRepo := repo.WithTx(tx)
+
+	user := utils.RandomUser()
+	createdAccount, err = txRepo.CreateAccount(context.Background(), user)
+	require.NoError(t, err)
+
+	err = txRepo.queries.DeleteAccountByAccountNumber(context.Background(), createdAccount.AccountNumber)
+	require.NoError(t, err)
+
+	res, err := repo.GetAccountByAccountNumber(context.Background(), createdAccount.AccountNumber)
+	require.Error(t, err)
+	require.Nil(t, res)
+}
+
+// Create 1 single transaction
+func TestCreateTransaction_Success(t *testing.T) {
+	db, teardown := setupTestDB(t)
+	defer teardown()
+	repo := NewAccountRepository(db)
+
+	var createdAccount *model.Account
+	tx, err := db.BeginTx(context.Background(), nil)
+	require.NoError(t, err)
+	defer tx.Rollback()
+	txRepo := repo.WithTx(tx)
+
+	user := utils.RandomUser()
+	createdAccount, err = txRepo.CreateAccount(context.Background(), user)
+	require.NoError(t, err)
+
+	transaction := utils.RandomTransaction()
+	transaction.AccountID = createdAccount.AccountID
+	createdTransaction, err := txRepo.CreateTransaction(context.Background(), transaction)
+	require.NoError(t, err)
+
+	require.NotEmpty(t, createdTransaction)
+	require.Equal(t, transaction.AccountID, createdTransaction.AccountID)
+	require.Equal(t, transaction.IdempotencyKey, createdTransaction.IdempotencyKey)
+}
+
+// Create another transaction with the same idempotency key should fail
+func TestCreateTransaction_Idempotency(t *testing.T) {
+	db, teardown := setupTestDB(t)
+	defer teardown()
+	repo := NewAccountRepository(db)
+
+	var createdAccount *model.Account
+	tx, err := db.BeginTx(context.Background(), nil)
+	require.NoError(t, err)
+	defer tx.Rollback()
+	txRepo := repo.WithTx(tx)
+
+	user := utils.RandomUser()
+	createdAccount, err = txRepo.CreateAccount(context.Background(), user)
+	require.NoError(t, err)
+
+	transaction := utils.RandomTransaction()
+	transaction.AccountID = createdAccount.AccountID
+
+	_, err = txRepo.CreateTransaction(context.Background(), transaction)
+	require.NoError(t, err)
+
+	duplicateTransaction := &model.Transaction{
+		AccountID:       createdAccount.AccountID,
+		IdempotencyKey:  transaction.IdempotencyKey,
+		Amount:          200,
+		TransactionType: "DEPOSIT",
+		Status:          "COMPLETED",
+		TransferID:      uuid.NullUUID{Valid: false},
+	}
+
+	_, err = txRepo.CreateTransaction(context.Background(), duplicateTransaction)
+	require.Error(t, err)
+}
+
+// Multiple concurrent goroutines that create different transactions should update the account balance correctly
+func TestCreateMultipleTransactions_Success(t *testing.T) {
+	db, teardown := setupTestDB(t)
+	defer teardown()
+	repo := NewAccountRepository(db)
+
+	var createdAccount *model.Account
+	tx, err := db.BeginTx(context.Background(), nil)
+	require.NoError(t, err)
+	defer tx.Rollback()
+	txRepo := repo.WithTx(tx)
+	user := utils.RandomUser()
+	createdAccount, err = txRepo.CreateAccount(context.Background(), user)
+	require.NoError(t, err)
+	err = tx.Commit()
+	require.NoError(t, err)
+
+	numTransactions := 10
+	errChan := make(chan error, numTransactions)
+	results := make(chan *model.Transaction, numTransactions)
+
+	for i := 0; i < numTransactions; i++ {
+		go func() {
+			tx, err := db.BeginTx(context.Background(), nil)
+			if err != nil {
+				errChan <- err
+				return
+			}
+			defer tx.Rollback()
+			txRepo := repo.WithTx(tx)
+			transaction := utils.RandomTransaction()
+			transaction.AccountID = createdAccount.AccountID
+			result, err := txRepo.CreateTransaction(context.Background(), transaction)
+			if err != nil {
+				errChan <- err
+				return
+			}
+			if err := tx.Commit(); err != nil {
+				errChan <- err
+				return
+			}
+			results <- result
+			errChan <- nil
+		}()
+	}
+
+	createdTransactions := make([]*model.Transaction, 0, numTransactions)
+	for i := 0; i < numTransactions; i++ {
+		err := <-errChan
+		require.NoError(t, err)
+		result := <-results
+		require.NotEmpty(t, result)
+		createdTransactions = append(createdTransactions, result)
+	}
+
+	// Cleanup the account and transactions we created to test
+	tx, err = db.BeginTx(context.Background(), nil)
+	require.NoError(t, err)
+	defer tx.Rollback()
+	txRepo = repo.WithTx(tx)
+	for _, tx := range createdTransactions {
+		err := txRepo.queries.DeleteTransactionByID(context.Background(), tx.TransactionID)
+		if err != nil {
+			return
+		}
+	}
+	err = txRepo.queries.DeleteAccountByAccountNumber(context.Background(), createdAccount.AccountNumber)
+	require.NoError(t, err)
+	err = tx.Commit()
+	require.NoError(t, err)
+}
+
+func TestCreateTransactionWithTransferID_Success(t *testing.T) {
+	db, teardown := setupTestDB(t)
+	defer teardown()
+	repo := NewAccountRepository(db)
+
+	var createdAccount *model.Account
+	tx, err := db.BeginTx(context.Background(), nil)
+	require.NoError(t, err)
+	defer tx.Rollback()
+	txRepo := repo.WithTx(tx)
+	user := utils.RandomUser()
+	createdAccount, err = txRepo.CreateAccount(context.Background(), user)
+	require.NoError(t, err)
+
+	transferID := uuid.New()
+	transaction := &model.Transaction{
+		TransactionID:   uuid.New(),
+		AccountID:       createdAccount.AccountID,
+		IdempotencyKey:  uuid.NewString(),
+		Amount:          100,
+		TransactionType: "TRANSFER_CREDIT",
+		Status:          "COMPLETED",
+		TransferID:      uuid.NullUUID{UUID: transferID, Valid: true},
+	}
+
+	var createdTransaction *model.Transaction
+	createdTransaction, err = txRepo.CreateTransaction(context.Background(), transaction)
+	require.NoError(t, err)
+	require.NotEmpty(t, createdTransaction)
+	require.Equal(t, transaction, createdTransaction)
 }

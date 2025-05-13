@@ -48,9 +48,45 @@ func RandomAccountNumber() int64 {
 
 func RandomAccount() *model.Account {
 	return &model.Account{
-		AccountID: uuid.New(),
-		UserID:    uuid.New(),
+		AccountID:     uuid.New(),
+		UserID:        uuid.New(),
 		AccountNumber: RandomAccountNumber(),
-		Balance:       int64(RandMinMax(0, 100)),
+		Balance:       int64(RandMinMax(1, 100)),
+	}
+}
+
+func RandomTransactionType() string {
+	types := []string{"DEPOSIT", "WITHDRAWAL"}
+	return types[rand.Intn(len(types))]
+}
+
+func RandomTransactionStatus() string {
+	statuses := []string{"PENDING", "COMPLETED", "FAILED"}
+	return statuses[rand.Intn(len(statuses))]
+}
+
+func RandomTransferID() uuid.NullUUID {
+	t := []uuid.NullUUID{
+		{
+			UUID:  uuid.New(),
+			Valid: true,
+		},
+		{
+			UUID:  uuid.Nil,
+			Valid: false,
+		},
+	}
+	return t[rand.Intn(len(t))]
+}
+
+func RandomTransaction() *model.Transaction {
+	return &model.Transaction{
+		TransactionID:   uuid.New(),
+		AccountID:       uuid.New(),
+		IdempotencyKey:  RandomString(10),
+		TransactionType: RandomTransactionType(),
+		Status:          RandomTransactionStatus(),
+		TransferID:      RandomTransferID(),
+		Amount:          int64(RandMinMax(1, 100)),
 	}
 }

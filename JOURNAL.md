@@ -240,3 +240,5 @@ In practice, this should never happen as developers shouldn't run concurrent sta
 
 INSERT into tables that lack unique indexes will not be blocked by concurrent activity. Tables with unique indexes might block if concurrent sessions perform actions that lock or modify rows matching the unique index values being inserted; the details are covered in Section 62.5. ON CONFLICT can be used to specify an alternative action to raising a unique constraint or exclusion constraint violation error. (See ON CONFLICT Clause [below](https://www.postgresql.org/docs/current/sql-insert.html).)
 
+
+# Refactored code for the repository layers leave the transaction logic to the service layer (May 13)

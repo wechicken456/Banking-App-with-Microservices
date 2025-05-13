@@ -15,6 +15,15 @@ CREATE INDEX idx_transfer_from_account_id ON transfers (from_account_id);
 CREATE INDEX idx_transfer_to_account_id ON transfers (to_account_id);
 CREATE INDEX idx_transfer_idempotency_key ON transfers (idempotency_key);
 
+-- Automatically update the updated_at column for a row whenever that row is updated.
+CREATE OR REPLACE FUNCTION update_timestamp()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
 CREATE TRIGGER trigger_update_timestamp_transfers
 BEFORE UPDATE ON transfers
 FOR EACH ROW EXECUTE FUNCTION update_timestamp();

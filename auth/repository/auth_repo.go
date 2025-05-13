@@ -4,10 +4,9 @@ import (
 	"auth/db/sqlc"
 	"auth/model"
 	"auth/utils"
+	"context"
 	"database/sql"
 	"errors"
-
-	"context"
 
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
@@ -39,8 +38,7 @@ func (r *AuthRepository) execTx(ctx context.Context, fn func(*sqlc.Queries) erro
 }
 
 // create user in a transaction: check if user already exists, if not create user
-func (r *AuthRepository) CreateUserTx(ctx context.Context, user *model.User) (*sqlc.User, error) {
-
+func (r *AuthRepository) CreateUserTx(ctx context.Context, user *model.User) (*model.User, error) {
 	var createdUser sqlc.User
 
 	err := r.execTx(ctx, func(q *sqlc.Queries) error {
@@ -51,7 +49,7 @@ func (r *AuthRepository) CreateUserTx(ctx context.Context, user *model.User) (*s
 		if err == nil {
 			return errors.New("user already exists")
 		}
-		// check if the error is due to no rows found
+
 		if errors.Is(err, sql.ErrNoRows) {
 			return err
 		}
@@ -61,7 +59,6 @@ func (r *AuthRepository) CreateUserTx(ctx context.Context, user *model.User) (*s
 			return err
 		}
 
-		// create user
 		createdUser, err = q.CreateUser(ctx, sqlc.CreateUserParams{
 			ID:           uuid.New(),
 			Email:        user.Email,
@@ -72,18 +69,32 @@ func (r *AuthRepository) CreateUserTx(ctx context.Context, user *model.User) (*s
 		}
 		return nil
 	})
-	return &createdUser, err
+
+	if err != nil {
+		return nil, err
+	}
+
+	modelUser := &model.User{
+		Email:    createdUser.Email,
+		Password: "", // Don't return the password
+	}
+
+	return modelUser, nil
 }
 
 // business logic (invalid password, etc.) should be handled in the service layer
 // get user by email
 // if user exists, return user
-func (r *AuthRepository) UserLogin(ctx context.Context, email string) (*sqlc.User, error) {
-    user, err := r.queries.GetUserByEmail(ctx, email)
-    if err != nil {
-        return nil, err
-    }
-    return &user, nil
+func (r *AuthRepository) GetLoginPasswordHash(ctx context.Context, email string) (*model.User, error) {
+	user, err := r.queries.GetUserByEmail(ctx, email)
+	if err != nil {
+		return nil, err
+	}
+
+	modelUser := &model.User{
+		Email:    user.Email,
+		Password: user.PasswordHash, // Include the hash for validation in service layer
+	}
+
+	return modelUser, nil
 }
-
-

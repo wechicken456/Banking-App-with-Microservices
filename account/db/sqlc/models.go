@@ -21,7 +21,8 @@ type Account struct {
 
 type Transaction struct {
 	ID              uuid.UUID     `json:"id"`
-	AccountID       uuid.NullUUID `json:"account_id"`
+	IdempotencyKey  string        `json:"idempotency_key"`
+	AccountID       uuid.UUID     `json:"account_id"`
 	TransactionType string        `json:"transaction_type"`
 	Amount          int64         `json:"amount"`
 	Status          string        `json:"status"`

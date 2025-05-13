@@ -9,7 +9,7 @@ SELECT * FROM transactions WHERE id = $1;
 -- name: GetTransactionByIdempotencyKey :one
 SELECT * FROM transactions WHERE idempotency_key = $1;
 
--- name: GetTransactionByAccountID :many
+-- name: GetTransactionsByAccountID :many
 SELECT * FROM transactions WHERE account_id = $1;
 
 -- name: GetTransactionByTransferID :many
@@ -23,6 +23,12 @@ UPDATE transactions
 SET status = sqlc.arg(status)
 WHERE id = sqlc.arg(id)
 RETURNING *;
+
+-- name: DeleteTransactionByID :exec
+DELETE FROM transactions
+WHERE id = $1
+RETURNING *;
+
 
 
 
