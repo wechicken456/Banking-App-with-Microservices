@@ -116,12 +116,12 @@ func (q *Queries) GetAccountByID(ctx context.Context, id uuid.UUID) (Account, er
 	return i, err
 }
 
-const getAccountByUserID = `-- name: GetAccountByUserID :many
+const getAccountsByUserID = `-- name: GetAccountsByUserID :many
 SELECT id, user_id, account_number, balance, created_at, updated_at FROM accounts WHERE user_id = $1
 `
 
-func (q *Queries) GetAccountByUserID(ctx context.Context, userID uuid.UUID) ([]Account, error) {
-	rows, err := q.db.QueryContext(ctx, getAccountByUserID, userID)
+func (q *Queries) GetAccountsByUserID(ctx context.Context, userID uuid.UUID) ([]Account, error) {
+	rows, err := q.db.QueryContext(ctx, getAccountsByUserID, userID)
 	if err != nil {
 		return nil, err
 	}

@@ -140,15 +140,38 @@ func (r *AuthRepository) CreateUserTx(ctx context.Context, user *model.User) (*s
 # Some readings on consistency and PostgreSQL locks (May 10)
 
 ## PostgreSQL Lock and Transactions
+
+[+] Postgres isolation levels: https://www.postgresql.org/docs/current/transaction-iso.html.
+
 [+] In Postgres, implicitly acquired lock of the INSERT query stays active until the end of the transaction.
 
-[+] By *default*, PostgreSQL uses [**Read Committed Isolation Level**](https://www.postgresql.org/docs/7.1/xact-read-committed.html), which will NEVER read a `SELECT` query sees only data committed before the query began and never sees either uncommitted data or changes committed during query execution by concurrent transactions (except for the changes made by the transaction we're in). 
+
+### Read-Committed (default)
+[+] By *default*, PostgreSQL uses [**Read Committed Isolation Level**](https://www.postgresql.org/docs/7.1/xact-read-committed.html), which will NEVER read **uncommitted** changes. A `SELECT` query sees only data committed before the query began and never sees either uncommitted data or changes committed during query execution by concurrent transactions (except for the changes made by the transaction we're in). 
 
 [+] For `UPDATE ... WHERE` clauses, whenever PostgreSQL finds a row that matches the filter, that row will be locked and updated. If locking a row is blocked by a concurrent query, PostgreSQL waits until the lock goes away. Then it re-evaluates the filter condition and either moves on (if the condition no longer applies on account of a concurrent modification) or it locks and updates the modified row.
 
 [!] However, this means that two *successive* `SELECT`s can see different data, even though they are within a single transaction, when other transactions commit changes during execution of the first `SELECT`.
 
 [!] **DEADLOCK**: "If you don't explicit lock a table using LOCK statement, it will be implicit locked only at the first UPDATE, INSERT, or DELETE operation. If you don't exclusive lock the table before the select, some other user may also read the selected data, and try and do their own update, causing a deadlock while you both wait for the other to release the select-induced shared lock so you can get an exclusive lock to do the update." See more [here](https://www.postgresql.org/docs/6.4/sql-lock.htm)
+
+
+Because Read Committed mode starts *each* command with a *new snapshot* that includes all transactions committed up to that instant, subsequent commands in the same transaction will see the effects of the committed concurrent transaction in any case. The point at issue above is whether or not a single command sees an absolutely consistent view of the database.
+
+
+### Repeatable-Read 
+
+https://www.postgresql.org/docs/current/transaction-iso.html#XACT-REPEATABLE-READ
+
+This level is different from Read Committed in that a query in a repeatable read transaction sees a snapshot as of the start of the first non-transaction-control statement in the transaction, not as of the start of the current statement within the transaction. Thus, successive SELECT commands within a single transaction see the same data, i.e., they do not see changes made by other transactions that committed after their own transaction started.
+
+UPDATE, DELETE, MERGE, SELECT FOR UPDATE, and SELECT FOR SHARE commands behave the same as SELECT in terms of searching for target rows: they will only find target rows that were committed as of the transaction start time. However, such a target row might have already been updated (or deleted or locked) by another concurrent transaction by the time it is found. In this case, the repeatable read transaction will wait for the first updating transaction to commit or roll back (if it is still in progress). If the first updater rolls back, then its effects are negated and the repeatable read transaction can proceed with updating the originally found row. But if the first updater commits (and actually updated or deleted the row, not just locked it) then the repeatable read transaction will be rolled back with the message
+
+`ERROR:  could not serialize access due to concurrent update`
+
+Note that only updating transactions might need to be retried; read-only transactions will never have serialization conflicts.
+
+
 
 ### Potential Deadlock Issue with Concurrent Transfers
 
@@ -242,3 +265,6 @@ INSERT into tables that lack unique indexes will not be blocked by concurrent ac
 
 
 # Refactored code for the repository layers leave the transaction logic to the service layer (May 13)
+
+## `protoc`-generated files
+In summary, the `.pb.go` file deals with message definitions, while the `_grpc.pb.go` file deals with service/RPC definitions. This separation allows you to use the message definitions without requiring the gRPC dependencies if needed.

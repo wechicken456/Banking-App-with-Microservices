@@ -17,7 +17,7 @@ type AccountRepository struct {
 }
 
 // NewAccountRepository creates a new AccountRepository.
-func NewAccountRepository(db *sqlx.DB) *AccountRepository {
+func NewAccountRepository(db *sqlx.DB	) *AccountRepository {
 	return &AccountRepository{queries: sqlc.New(db), db: db}
 }
 
@@ -100,18 +100,19 @@ func (r *AccountRepository) GetAccountByID(ctx context.Context, id uuid.UUID) (*
 	return convertToModelAccount(account), nil
 }
 
-func (r *AccountRepository) GetAccountByUserID(ctx context.Context, userID uuid.UUID) ([]model.Account, error) {
-	accounts, err := r.queries.GetAccountByUserID(ctx, userID)
+func (r *AccountRepository) GetAccountsByUserID(ctx context.Context, userID uuid.UUID) ([]*model.Account, error) {
+	accounts, err := r.queries.GetAccountsByUserID(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
-	modelAccounts := make([]model.Account, len(accounts))
+	modelAccounts := make([]*model.Account, len(accounts))
 	for i, account := range accounts {
-		modelAccounts[i] = *convertToModelAccount(account)
+		modelAccounts[i] = convertToModelAccount(account)
 	}
 	return modelAccounts, nil
 }
 
+// I think AddToAccountBalance is clearer than UpdateAccountBalance cause Update can mean "set" it to this amount instead of adding/substracting to it
 func (r *AccountRepository) AddToAccountBalance(ctx context.Context, accountNumber int64, amount int64) (*model.Account, error) {
 	account, err := r.queries.AddToAccountBalance(ctx, sqlc.AddToAccountBalanceParams{
 		AccountNumber: accountNumber,
@@ -163,14 +164,14 @@ func (r *AccountRepository) GetTransactionByID(ctx context.Context, id uuid.UUID
 	return convertToModelTransaction(transaction), nil
 }
 
-func (r *AccountRepository) GetTransactionsByAccountID(ctx context.Context, accountID uuid.UUID) ([]model.Transaction, error) {
+func (r *AccountRepository) GetTransactionsByAccountID(ctx context.Context, accountID uuid.UUID) ([]*model.Transaction, error) {
 	transactions, err := r.queries.GetTransactionsByAccountID(ctx, accountID)
 	if err != nil {
 		return nil, err
 	}
-	modelTransactions := make([]model.Transaction, len(transactions))
+	modelTransactions := make([]*model.Transaction, len(transactions))
 	for i, transaction := range transactions {
-		modelTransactions[i] = *convertToModelTransaction(transaction)
+		modelTransactions[i] = convertToModelTransaction(transaction)
 	}
 	return modelTransactions, nil
 }

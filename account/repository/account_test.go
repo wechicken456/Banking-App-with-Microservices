@@ -26,6 +26,8 @@ func setupTestDB(t *testing.T) (*sqlx.DB, func()) {
 
 // create multiple concurrent goroutines that create different accounts.
 func TestCreateAccount_Success(t *testing.T) {
+	t.Parallel()
+
 	db, teardown := setupTestDB(t)
 	defer teardown()
 	repo := NewAccountRepository(db)
@@ -79,6 +81,8 @@ func TestCreateAccount_Success(t *testing.T) {
 
 // creating an account with the same account number should fail
 func TestCreateAccount_Fail(t *testing.T) {
+	t.Parallel()
+
 	db, teardown := setupTestDB(t)
 	defer teardown()
 	repo := NewAccountRepository(db)
@@ -100,6 +104,8 @@ func TestCreateAccount_Fail(t *testing.T) {
 }
 
 func TestGetAccountByAccountNumber_Success(t *testing.T) {
+	t.Parallel()
+
 	db, teardown := setupTestDB(t)
 	defer teardown()
 
@@ -120,6 +126,8 @@ func TestGetAccountByAccountNumber_Success(t *testing.T) {
 }
 
 func TestAddToAccountBalance_Success(t *testing.T) {
+	t.Parallel()
+
 	db, teardown := setupTestDB(t)
 	defer teardown()
 	repo := NewAccountRepository(db)
@@ -183,6 +191,8 @@ func TestAddToAccountBalance_Success(t *testing.T) {
 }
 
 func TestDeleteAccountByAccountNumber_Success(t *testing.T) {
+	t.Parallel()
+
 	db, teardown := setupTestDB(t)
 	defer teardown()
 	repo := NewAccountRepository(db)
@@ -207,6 +217,8 @@ func TestDeleteAccountByAccountNumber_Success(t *testing.T) {
 
 // Create 1 single transaction
 func TestCreateTransaction_Success(t *testing.T) {
+	t.Parallel()
+
 	db, teardown := setupTestDB(t)
 	defer teardown()
 	repo := NewAccountRepository(db)
@@ -233,6 +245,8 @@ func TestCreateTransaction_Success(t *testing.T) {
 
 // Create another transaction with the same idempotency key should fail
 func TestCreateTransaction_Idempotency(t *testing.T) {
+	t.Parallel()
+
 	db, teardown := setupTestDB(t)
 	defer teardown()
 	repo := NewAccountRepository(db)
@@ -268,6 +282,8 @@ func TestCreateTransaction_Idempotency(t *testing.T) {
 
 // Multiple concurrent goroutines that create different transactions should update the account balance correctly
 func TestCreateMultipleTransactions_Success(t *testing.T) {
+	t.Parallel()
+
 	db, teardown := setupTestDB(t)
 	defer teardown()
 	repo := NewAccountRepository(db)
@@ -283,6 +299,7 @@ func TestCreateMultipleTransactions_Success(t *testing.T) {
 	err = tx.Commit()
 	require.NoError(t, err)
 
+	balance := createdAccount.Balance
 	numTransactions := 10
 	errChan := make(chan error, numTransactions)
 	results := make(chan *model.Transaction, numTransactions)
@@ -303,6 +320,11 @@ func TestCreateMultipleTransactions_Success(t *testing.T) {
 				errChan <- err
 				return
 			}
+			_, err = txRepo.AddToAccountBalance(context.Background(), createdAccount.AccountNumber, transaction.Amount)
+			if err != nil {
+				errChan <- err
+				return
+			}
 			if err := tx.Commit(); err != nil {
 				errChan <- err
 				return
@@ -318,8 +340,14 @@ func TestCreateMultipleTransactions_Success(t *testing.T) {
 		require.NoError(t, err)
 		result := <-results
 		require.NotEmpty(t, result)
+		balance += result.Amount
 		createdTransactions = append(createdTransactions, result)
 	}
+
+	// check if the balance is updated correctly
+	finalAccount, err := repo.GetAccountByAccountNumber(context.Background(), createdAccount.AccountNumber)
+	require.NoError(t, err)
+	require.Equal(t, balance, finalAccount.Balance)
 
 	// Cleanup the account and transactions we created to test
 	tx, err = db.BeginTx(context.Background(), nil)
@@ -339,6 +367,8 @@ func TestCreateMultipleTransactions_Success(t *testing.T) {
 }
 
 func TestCreateTransactionWithTransferID_Success(t *testing.T) {
+	t.Parallel()
+
 	db, teardown := setupTestDB(t)
 	defer teardown()
 	repo := NewAccountRepository(db)

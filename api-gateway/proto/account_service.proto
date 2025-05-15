@@ -36,20 +36,6 @@ message CreateAcocuntResponse {
     bytes account_id = 3;
 }
 
-// I think AddToAccountBalance is clearer than UpdateAccountBalance cause Update can mean "set" it to this amount instead of adding/substracting to it
-message UpdateAccountBalanceRequest {
-    bytes user_id = 1;
-    bytes account_id = 2;
-    int64 account_number = 3;
-    int64 amount = 4;
-}
-
-message UpdateAccountBalanceResponse {
-    int64 status = 1;
-    bytes error = 2;
-    int64 updated_balance = 3;
-}
-
 message GetAccountsByUserIdRequest {
     bytes user_id = 1;
 }
@@ -60,18 +46,7 @@ message GetAccountsByUserIdResponse {
     repeated Account accounts = 3;
 }
 
-message DeleteAccountByAccountNumberRequest {
-    int64 account_number = 1;
-    bytes user_id = 2;
-}
-
-message DeleteAccountByAccountNumberResponse {
-    int64 status = 1;
-    bytes error = 2;
-}
-
 message CreateTransactionRequest {
-    bytes user_id = 5;
     bytes account_id = 1;
     int64 amount = 2;
     bytes transaction_type = 3; // "credit" or "debit"
@@ -86,7 +61,6 @@ message CreateTransactionResponse {
 
 message GetTransactionsByAccountIdRequest {
     bytes account_id = 1;
-    bytes user_id = 2;
 }
 
 message GetTransactionsByAccountIdResponse {

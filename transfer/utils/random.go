@@ -30,11 +30,31 @@ func RandomString(length int) string {
 	return string(b)
 }
 
+func RandomUser() *model.User {
+	return &model.User{
+		UserID:  uuid.New(),
+		Balance: int64(RandMinMax(0, 100_000_000_000_000)),
+	}
+}
+
 func RandomTransfer() *model.Transfer {
 	return &model.Transfer{
 		FromAccountID:  uuid.New(),
 		ToAccountID:    uuid.New(),
 		IdempotencyKey: RandomString(10),
 		Amount:         int64(RandMinMax(1, 100_000_000)),
+	}
+}
+
+func RandomAccountNumber() int64 {
+	return int64(RandMinMax(1_000_000_000, 1_000_000_000_000_000_000))
+}
+
+func RandomAccount() *model.Account {
+	return &model.Account{
+		AccountID:     uuid.New(),
+		UserID:        uuid.New(),
+		AccountNumber: RandomAccountNumber(),
+		Balance:       int64(RandMinMax(1, 100)),
 	}
 }

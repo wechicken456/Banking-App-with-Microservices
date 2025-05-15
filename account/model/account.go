@@ -1,6 +1,10 @@
 package model
 
-import "github.com/google/uuid"
+import (
+	"errors"
+
+	"github.com/google/uuid"
+)
 
 type User struct {
 	UserID  uuid.UUID `json:"user_id"`
@@ -23,3 +27,5 @@ type Transaction struct {
 	Status          string        `json:"status"`
 	TransferID      uuid.NullUUID `json:"transfer_id"`
 }
+
+var ErrInternalServer error = errors.New("Internal server error")

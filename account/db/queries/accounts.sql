@@ -6,7 +6,7 @@ RETURNING *;
 -- name: GetAccountByID :one
 SELECT * FROM accounts WHERE id = $1;
 
--- name: GetAccountByUserID :many
+-- name: GetAccountsByUserID :many
 SELECT * FROM accounts WHERE user_id = $1;
 
 -- name: GetAccountByAccountNumber :one
