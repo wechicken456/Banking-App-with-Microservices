@@ -6,8 +6,8 @@ import (
 	"github.com/joho/godotenv"
 )
 
-func LoadDotEnv() {
-	err := godotenv.Load()
+func LoadDotEnv(dotEnvFilename string) {
+	err := godotenv.Load(dotEnvFilename)
 	if err != nil {
 		log.Fatalf("Failed to load .env file: %v", err)
 	}

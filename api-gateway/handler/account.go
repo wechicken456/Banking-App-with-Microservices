@@ -13,8 +13,10 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
+var dotEnvFilename = ".env"
+
 func NewAccountServiceClient() proto.AccountServiceClient {
-	initialize.LoadDotEnv()
+	initialize.LoadDotEnv(dotEnvFilename)
 
 	// Connect to the account service
 	connString := fmt.Sprintf("%s:%s", os.Getenv("ACCOUNT_SERVICE_HOST"), os.Getenv("ACCOUNT_SERVICE_PORT"))
@@ -73,8 +75,8 @@ func GetAccountsByUserID(userID string) []*proto.Account {
 	res, err := client.GetAccountsByUserId(context.Background(), req)
 	if err != nil {
 		log.Printf("Failed to get accounts by user ID: %v", err)
-		return
+		return nil
 	}
 	log.Printf("Accounts: %v", res)
-	return res
+	return res.Accounts
 }
