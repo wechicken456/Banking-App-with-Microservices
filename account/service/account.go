@@ -21,6 +21,8 @@ type AccountService struct {
 	db   *sqlx.DB
 }
 
+// r and db should be created in the main function and passed to the service
+// sqlx.DB object maintains a connection pool internally, and will attempt to connect when a connection is first needed.
 func NewAccountService(r *repository.AccountRepository, db *sqlx.DB) *AccountService {
 	return &AccountService{repo: r, db: db}
 }

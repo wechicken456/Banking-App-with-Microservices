@@ -21,6 +21,22 @@ func NewAuthRepository(db *sqlx.DB) *AuthRepository {
 	return &AuthRepository{queries: sqlc.New(db), db: db}
 }
 
+func convertToModelUser(user sqlc.User) *model.User {
+	return &model.User{
+		UserID:   user.ID,
+		Email:    user.Email,
+		Password: user.PasswordHash,
+	}
+}
+
+func convertToCreateUserParams(user *model.User) sqlc.CreateUserParams {
+	return sqlc.CreateUserParams{
+		ID:           user.UserID,
+		Email:        user.Email,
+		PasswordHash: user.Password,
+	}
+}
+
 // wrap a function in a transaction and execute it
 func (r *AuthRepository) execTx(ctx context.Context, fn func(*sqlc.Queries) error) error {
 	tx, err := r.db.BeginTx(ctx, nil) // create a transaction
@@ -80,6 +96,50 @@ func (r *AuthRepository) CreateUserTx(ctx context.Context, user *model.User) (*m
 	}
 
 	return modelUser, nil
+}
+
+func (r *AuthRepository) CreateUser(ctx context.Context, user *model.User) (*model.User, error) {
+	createdUser, err := r.queries.CreateUser(ctx, convertToCreateUserParams(user))
+	if err != nil {
+		return nil, err
+	}
+	return convertToModelUser(createdUser), nil
+}
+
+func (r *AuthRepository) GetUserByEmail(ctx context.Context, email string) (*model.User, error) {
+	user, err := r.queries.GetUserByEmail(ctx, email)
+	if err != nil {
+		return nil, err
+	}
+	return convertToModelUser(user), nil
+}
+
+func (r *AuthRepository) GetUserByID(ctx context.Context, id uuid.UUID) (*model.User, error) {
+	user, err := r.queries.GetUserByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	return convertToModelUser(user), nil
+}
+
+func (r *AuthRepository) UpdateUser(ctx context.Context, user *model.User) (*model.User, error) {
+	updatedUser, err := r.queries.UpdateUser(ctx, sqlc.UpdateUserParams{
+		ID:           user.UserID,
+		Email:        user.Email,
+		PasswordHash: user.Password,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return convertToModelUser(updatedUser), nil
+}
+
+func (r *AuthRepository) DeleteUser(ctx context.Context, id uuid.UUID) error {
+	err := r.queries.DeleteUser(ctx, id)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // business logic (invalid password, etc.) should be handled in the service layer

@@ -1,6 +1,6 @@
 Journal of what I do each day
 
-# Set up docker and goose (May 6)
+# May 6 - Set up docker and goose
 Finished setting up the `auth` database for the `auth` microservice.
 
 `docker compose up`
@@ -9,7 +9,7 @@ Finished setting up the `auth` database for the `auth` microservice.
 
 
 
-# Implement auth (May 9)
+# May 9 - Implement auth
 
 Tasks done:
 
@@ -84,8 +84,8 @@ We can do this by creating a new struct:
 
 ```Go
 type AuthRepository struct {
-	queries *sqlc.Queries
-	db *sqlx.DB
+    queries *sqlc.Queries
+    db *sqlx.DB
 }
 ```
 
@@ -94,50 +94,50 @@ Then we can use it like:
 ```Go
 // wrap a function in a transaction and execute it
 func (r *AuthRepository) execTx(ctx context.Context, fn func(*sqlc.Queries) error) error {
-	tx, err := r.db.BeginTx(ctx, nil) // create a transaction
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
-	q := r.queries.WithTx(tx) // return a new queries object with the transaction
+    tx, err := r.db.BeginTx(ctx, nil) // create a transaction
+    if err != nil {
+        return err
+    }
+    defer tx.Rollback()
+    q := r.queries.WithTx(tx) // return a new queries object with the transaction
 
-	if err := fn(q); err != nil { // execute the function with the transaction
-		return err
-	}
+    if err := fn(q); err != nil { // execute the function with the transaction
+        return err
+    }
 
-	return tx.Commit()
+    return tx.Commit()
 }
 
 // create user in a transaction: check if user already exists, if not create user
 func (r *AuthRepository) CreateUserTx(ctx context.Context, user *model.User) (*sqlc.User, error) {
 
-	var createdUser sqlc.User
+    var createdUser sqlc.User
 
-	err := r.execTx(ctx, func(q *sqlc.Queries) error {
-		var err error
+    err := r.execTx(ctx, func(q *sqlc.Queries) error {
+        var err error
 
-		// check if user already exists
-		_, err = q.GetUserByEmail(ctx, user.Email)
-		...
+        // check if user already exists
+        _, err = q.GetUserByEmail(ctx, user.Email)
+        ...
         ....
-		// create user
-		createdUser, err = q.CreateUser(ctx, sqlc.CreateUserParams{
-			ID:           uuid.New(),
-			Email:        user.Email,
-			PasswordHash: passwordHash,
-		})
-		if err != nil {
-			return err
-		}
-		return nil
-	})
-	return &createdUser, err
+        // create user
+        createdUser, err = q.CreateUser(ctx, sqlc.CreateUserParams{
+            ID:           uuid.New(),
+            Email:        user.Email,
+            PasswordHash: passwordHash,
+        })
+        if err != nil {
+            return err
+        }
+        return nil
+    })
+    return &createdUser, err
 
 }
 ```
 
 
-# Some readings on consistency and PostgreSQL locks (May 10)
+# May 10 - Some readings on consistency and PostgreSQL locks
 
 ## PostgreSQL Lock and Transactions
 
@@ -210,7 +210,7 @@ But how do we ensure **consistency**?
 
 
 
-# Implemented the account service. Decided that the close future plan is to implement orchestration-based SAGA with gRPC first before adding Kafka. (May 11)
+# May 11 - Implemented the account service. Decided that the close future plan is to implement orchestration-based SAGA with gRPC first before adding Kafka.
 
 Some readings:
 
@@ -244,7 +244,7 @@ Data dependencies among microservices such as creating an account requires a use
 Right now, implementing orchestration-based is simpler. In the future, I'm interested in implementing a choreography-based using Kafka :)
 
 
-# Decided to merge the Account and Transaction services together since they are tightly coupled (May 12)
+# May 12 - Decided to merge the Account and Transaction services together since they are tightly coupled
 
 ## PostgreSQL concurrent statements in the SAME transaction
 
@@ -252,7 +252,7 @@ If multiple concurrent statements are running within the SAME transaction, Postg
 
 ```bash
 Error:      	Received unexpected error:
-        	            	pq: unexpected Parse response 'C'
+                        	pq: unexpected Parse response 'C'
 ```
 
 This is because we're trying to start a new statement before reading all of the rows of the preceding statement. 
@@ -264,7 +264,12 @@ In practice, this should never happen as developers shouldn't run concurrent sta
 INSERT into tables that lack unique indexes will not be blocked by concurrent activity. Tables with unique indexes might block if concurrent sessions perform actions that lock or modify rows matching the unique index values being inserted; the details are covered in Section 62.5. ON CONFLICT can be used to specify an alternative action to raising a unique constraint or exclusion constraint violation error. (See ON CONFLICT Clause [below](https://www.postgresql.org/docs/current/sql-insert.html).)
 
 
-# Refactored code for the repository layers leave the transaction logic to the service layer (May 13)
+# May 13 - Refactored code for the repository layers leave the transaction logic to the service layer
 
 ## `protoc`-generated files
 In summary, the `.pb.go` file deals with message definitions, while the `_grpc.pb.go` file deals with service/RPC definitions. This separation allows you to use the message definitions without requiring the gRPC dependencies if needed.
+
+
+
+# May 20 - Added the service layer for `auth` service
+

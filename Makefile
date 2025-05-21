@@ -1,6 +1,6 @@
 include .env
 
-all: goose-up sqlc protoc
+all: sqlc protoc goose-up
 
 
 goose-up:
