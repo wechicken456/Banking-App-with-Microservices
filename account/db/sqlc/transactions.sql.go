@@ -12,14 +12,13 @@ import (
 )
 
 const createTransaction = `-- name: CreateTransaction :one
-INSERT INTO transactions (id, idempotency_key, account_id, amount, transaction_type, status, transfer_id)
-VALUES ($1, $2, $3, $4, $5, $6, $7)
-RETURNING id, idempotency_key, account_id, transaction_type, amount, status, transfer_id, created_at, updated_at
+INSERT INTO transactions (id, account_id, amount, transaction_type, status, transfer_id)
+VALUES ($1, $2, $3, $4, $5, $6)
+RETURNING id, account_id, transaction_type, amount, status, transfer_id, created_at, updated_at
 `
 
 type CreateTransactionParams struct {
 	ID              uuid.UUID     `json:"id"`
-	IdempotencyKey  string        `json:"idempotency_key"`
 	AccountID       uuid.UUID     `json:"account_id"`
 	Amount          int64         `json:"amount"`
 	TransactionType string        `json:"transaction_type"`
@@ -30,7 +29,6 @@ type CreateTransactionParams struct {
 func (q *Queries) CreateTransaction(ctx context.Context, arg CreateTransactionParams) (Transaction, error) {
 	row := q.db.QueryRowContext(ctx, createTransaction,
 		arg.ID,
-		arg.IdempotencyKey,
 		arg.AccountID,
 		arg.Amount,
 		arg.TransactionType,
@@ -40,7 +38,6 @@ func (q *Queries) CreateTransaction(ctx context.Context, arg CreateTransactionPa
 	var i Transaction
 	err := row.Scan(
 		&i.ID,
-		&i.IdempotencyKey,
 		&i.AccountID,
 		&i.TransactionType,
 		&i.Amount,
@@ -55,7 +52,7 @@ func (q *Queries) CreateTransaction(ctx context.Context, arg CreateTransactionPa
 const deleteTransactionByID = `-- name: DeleteTransactionByID :exec
 DELETE FROM transactions
 WHERE id = $1
-RETURNING id, idempotency_key, account_id, transaction_type, amount, status, transfer_id, created_at, updated_at
+RETURNING id, account_id, transaction_type, amount, status, transfer_id, created_at, updated_at
 `
 
 func (q *Queries) DeleteTransactionByID(ctx context.Context, id uuid.UUID) error {
@@ -64,7 +61,7 @@ func (q *Queries) DeleteTransactionByID(ctx context.Context, id uuid.UUID) error
 }
 
 const getTransactionByID = `-- name: GetTransactionByID :one
-SELECT id, idempotency_key, account_id, transaction_type, amount, status, transfer_id, created_at, updated_at FROM transactions WHERE id = $1
+SELECT id, account_id, transaction_type, amount, status, transfer_id, created_at, updated_at FROM transactions WHERE id = $1
 `
 
 func (q *Queries) GetTransactionByID(ctx context.Context, id uuid.UUID) (Transaction, error) {
@@ -72,28 +69,6 @@ func (q *Queries) GetTransactionByID(ctx context.Context, id uuid.UUID) (Transac
 	var i Transaction
 	err := row.Scan(
 		&i.ID,
-		&i.IdempotencyKey,
-		&i.AccountID,
-		&i.TransactionType,
-		&i.Amount,
-		&i.Status,
-		&i.TransferID,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
-}
-
-const getTransactionByIdempotencyKey = `-- name: GetTransactionByIdempotencyKey :one
-SELECT id, idempotency_key, account_id, transaction_type, amount, status, transfer_id, created_at, updated_at FROM transactions WHERE idempotency_key = $1
-`
-
-func (q *Queries) GetTransactionByIdempotencyKey(ctx context.Context, idempotencyKey string) (Transaction, error) {
-	row := q.db.QueryRowContext(ctx, getTransactionByIdempotencyKey, idempotencyKey)
-	var i Transaction
-	err := row.Scan(
-		&i.ID,
-		&i.IdempotencyKey,
 		&i.AccountID,
 		&i.TransactionType,
 		&i.Amount,
@@ -106,7 +81,7 @@ func (q *Queries) GetTransactionByIdempotencyKey(ctx context.Context, idempotenc
 }
 
 const getTransactionByTransferID = `-- name: GetTransactionByTransferID :many
-SELECT id, idempotency_key, account_id, transaction_type, amount, status, transfer_id, created_at, updated_at FROM transactions WHERE transfer_id = $1
+SELECT id, account_id, transaction_type, amount, status, transfer_id, created_at, updated_at FROM transactions WHERE transfer_id = $1
 `
 
 func (q *Queries) GetTransactionByTransferID(ctx context.Context, transferID uuid.NullUUID) ([]Transaction, error) {
@@ -120,7 +95,6 @@ func (q *Queries) GetTransactionByTransferID(ctx context.Context, transferID uui
 		var i Transaction
 		if err := rows.Scan(
 			&i.ID,
-			&i.IdempotencyKey,
 			&i.AccountID,
 			&i.TransactionType,
 			&i.Amount,
@@ -143,7 +117,7 @@ func (q *Queries) GetTransactionByTransferID(ctx context.Context, transferID uui
 }
 
 const getTransactionsByAccountID = `-- name: GetTransactionsByAccountID :many
-SELECT id, idempotency_key, account_id, transaction_type, amount, status, transfer_id, created_at, updated_at FROM transactions WHERE account_id = $1
+SELECT id, account_id, transaction_type, amount, status, transfer_id, created_at, updated_at FROM transactions WHERE account_id = $1
 `
 
 func (q *Queries) GetTransactionsByAccountID(ctx context.Context, accountID uuid.UUID) ([]Transaction, error) {
@@ -157,7 +131,6 @@ func (q *Queries) GetTransactionsByAccountID(ctx context.Context, accountID uuid
 		var i Transaction
 		if err := rows.Scan(
 			&i.ID,
-			&i.IdempotencyKey,
 			&i.AccountID,
 			&i.TransactionType,
 			&i.Amount,
@@ -180,7 +153,7 @@ func (q *Queries) GetTransactionsByAccountID(ctx context.Context, accountID uuid
 }
 
 const listTransactions = `-- name: ListTransactions :many
-SELECT id, idempotency_key, account_id, transaction_type, amount, status, transfer_id, created_at, updated_at FROM transactions ORDER BY updated_at LIMIT $1
+SELECT id, account_id, transaction_type, amount, status, transfer_id, created_at, updated_at FROM transactions ORDER BY updated_at LIMIT $1
 `
 
 func (q *Queries) ListTransactions(ctx context.Context, limit int32) ([]Transaction, error) {
@@ -194,7 +167,6 @@ func (q *Queries) ListTransactions(ctx context.Context, limit int32) ([]Transact
 		var i Transaction
 		if err := rows.Scan(
 			&i.ID,
-			&i.IdempotencyKey,
 			&i.AccountID,
 			&i.TransactionType,
 			&i.Amount,
@@ -220,7 +192,7 @@ const updateTransactionStatus = `-- name: UpdateTransactionStatus :exec
 UPDATE transactions
 SET status = $1
 WHERE id = $2
-RETURNING id, idempotency_key, account_id, transaction_type, amount, status, transfer_id, created_at, updated_at
+RETURNING id, account_id, transaction_type, amount, status, transfer_id, created_at, updated_at
 `
 
 type UpdateTransactionStatusParams struct {

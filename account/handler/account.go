@@ -20,7 +20,7 @@ func NewAccountHandler(service *service.AccountService) *AccountHandler {
 	return &AccountHandler{service: service}
 }
 
-func (s *AccountHandler) CreateAccount(ctx context.Context, req *proto.CreateAccountRequest) (*proto.CreateAcocuntResponse, error) {
+func (h *AccountHandler) CreateAccount(ctx context.Context, req *proto.CreateAccountRequest) (*proto.CreateAccountResponse, error) {
 	var (
 		user   *model.User
 		userID uuid.UUID
@@ -35,19 +35,19 @@ func (s *AccountHandler) CreateAccount(ctx context.Context, req *proto.CreateAcc
 		UserID:  userID,
 		Balance: req.Balance,
 	}
-	account, err := s.service.CreateAccount(ctx, user)
+	account, err := h.service.CreateAccount(ctx, user)
 	if err != nil {
 		log.Printf("gRPC CreateAccount: Failed to create account: %v\n", err)
 		return nil, err
 	}
-	return &proto.CreateAcocuntResponse{
+	return &proto.CreateAccountResponse{
 		Status:    http.StatusOK,
 		AccountId: account.AccountID[:],
 		Error:     nil,
 	}, nil
 }
 
-func (s *AccountHandler) GetAccountsByUserID(ctx context.Context, req *proto.GetAccountsByUserIdRequest) (*proto.GetAccountsByUserIdResponse, error) {
+func (h *AccountHandler) GetAccountsByUserID(ctx context.Context, req *proto.GetAccountsByUserIdRequest) (*proto.GetAccountsByUserIdResponse, error) {
 	var (
 		accountID    uuid.UUID
 		accounts     []*model.Account
@@ -59,7 +59,7 @@ func (s *AccountHandler) GetAccountsByUserID(ctx context.Context, req *proto.Get
 		log.Printf("gRPC GetAccount: Failed to convert account ID: %v\n", err)
 		return nil, err
 	}
-	accounts, err = s.service.GetAccountsByUserID(ctx, accountID)
+	accounts, err = h.service.GetAccountsByUserID(ctx, accountID)
 	if err != nil {
 		log.Printf("gRPC GetAccount: Failed to get account: %v\n", err)
 		return nil, err
@@ -81,29 +81,42 @@ func (s *AccountHandler) GetAccountsByUserID(ctx context.Context, req *proto.Get
 	}, nil
 }
 
-func (s *AccountHandler) UpdateAccountBalance(ctx context.Context, req *proto.UpdateAccountBalanceRequest) (*proto.UpdateAccountBalanceResponse, error) {
+func (h *AccountHandler) CreateTransaction(ctx context.Context, req *proto.CreateTransactionRequest) (*proto.CreateTransactionResponse, error) {
 	var (
-		accountID uuid.UUID
-		account   *model.Account
-		err       error
+		userID      uuid.UUID
+		accountID   uuid.UUID
+		transaction *model.Transaction
+		err         error
 	)
 
 	if accountID, err = uuid.FromBytes(req.AccountId); err != nil {
 		log.Printf("gRPC AddToAccountBalance: Failed to convert account ID: %v\n", err)
 		return nil, err
 	}
-	if account, err = s.service.AddToAccountBalance(ctx, req.AccountNumber, req.Amount, accountID); err != nil {
-		log.Printf("gRPC AddToAccountBalance: Failed to add to account balance: %v\n", err)
+	if userID, err = uuid.FromBytes(req.ReqUserId); err != nil {
+		log.Printf("gRPC AddToAccountBalance: Failed to convert req user ID: %v\n", err)
 		return nil, err
 	}
-	return &proto.UpdateAccountBalanceResponse{
-		Status:         http.StatusOK,
-		Error:          nil,
-		UpdatedBalance: account.Balance,
+	transaction = &model.Transaction{
+		AccountID:       accountID,
+		Amount:          req.Amount,
+		TransactionType: string(req.TransactionType),
+		Status:          "PENDING",
+		TransferID:      uuid.NullUUID{uuid.UUID(req.TransferId), true},
+	}
+
+	if transaction, err = h.service.CreateTransaction(ctx, transaction, uuid.UUID(req.IdempotentKey), userID); err != nil {
+		log.Printf("gRPC AddToAccountBalance: Failed to create transaction: %v\n", err)
+		return nil, err
+	}
+	return &proto.CreateTransactionResponse{
+		Status:        http.StatusOK,
+		Error:         nil,
+		TransactionId: transaction.TransactionID[:],
 	}, nil
 }
 
-func (s *AccountHandler) DeleteAccountByAccountNumber(ctx context.Context, req *proto.DeleteAccountByAccountNumberRequest) (*proto.DeleteAccountByAccountNumberResponse, error) {
+func (h *AccountHandler) DeleteAccountByAccountNumber(ctx context.Context, req *proto.DeleteAccountByAccountNumberRequest) (*proto.DeleteAccountByAccountNumberResponse, error) {
 	var (
 		userID uuid.UUID
 		err    error
@@ -114,12 +127,39 @@ func (s *AccountHandler) DeleteAccountByAccountNumber(ctx context.Context, req *
 		return nil, err
 	}
 
-	if err = s.service.DeleteAccountByAccountNumber(ctx, req.AccountNumber, userID); err != nil {
+	if err = h.service.DeleteAccountByAccountNumber(ctx, req.AccountNumber, uuid.UUID(req.IdempotentKey), userID); err != nil {
 		log.Printf("gRPC DeleteAccountByAccountNumber: Failed to delete account: %v\n", err)
 		return nil, err
 	}
 	return &proto.DeleteAccountByAccountNumberResponse{
 		Status: http.StatusOK,
 		Error:  nil,
+	}, nil
+}
+
+func (h *AccountHandler) GetAccountByAccountNumber(ctx context.Context, req *proto.GetAccountByAccountNumberRequest) (*proto.GetAccountByAccountNumberResponse, error) {
+	var (
+		accountID uuid.UUID
+		account   *model.Account
+		err       error
+	)
+
+	if accountID, err = uuid.FromBytes(req.UserId); err != nil {
+		log.Printf("gRPC GetAccountByAccountNumber: Failed to convert account ID: %v\n", err)
+		return nil, err
+	}
+	if account, err = h.service.GetAccountByAccountNumber(ctx, req.AccountNumber, accountID); err != nil {
+		log.Printf("gRPC GetAccountByAccountNumber: Failed to get account: %v\n", err)
+		return nil, err
+	}
+	return &proto.GetAccountByAccountNumberResponse{
+		Status: http.StatusOK,
+		Error:  nil,
+		Account: &proto.Account{
+			AccountId:     account.AccountID[:],
+			AccountNumber: account.AccountNumber,
+			UserId:        account.UserID[:],
+			Balance:       account.Balance,
+		},
 	}, nil
 }

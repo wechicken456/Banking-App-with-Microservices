@@ -74,6 +74,7 @@ func (s *AuthService) UpdateUser(ctx context.Context, user *model.User, requesti
 
 	updatedUser, err := s.repo.UpdateUser(ctx, user)
 	if err != nil {
+		log.Printf("Failed to update user %v: %v\n", user.UserID, err)
 		return nil, model.ErrInternalServer
 	}
 	return updatedUser, nil
@@ -89,12 +90,14 @@ func (s *AuthService) UpdateUserPassword(ctx context.Context, user *model.User, 
 
 	passwordHash, err := utils.HashPassword(newPassword)
 	if err != nil {
+		log.Printf("UpdateUserPassword: Failed to hash password for user %v: %v\n", user.UserID, err)
 		return nil, model.ErrInternalServer
 	}
 	user.Password = passwordHash
 
 	updatedUser, err := s.UpdateUser(ctx, user, requestingUserID)
 	if err != nil {
+		log.Printf("Failed to update password for user %v: %v\n", user.UserID, err)
 		return nil, model.ErrInternalServer
 	}
 	return updatedUser, nil
@@ -110,6 +113,7 @@ func (s *AuthService) DeleteUser(ctx context.Context, userID uuid.UUID, requesti
 
 	err := s.repo.DeleteUser(ctx, userID)
 	if err != nil {
+		log.Printf("Failed to delete user %v: %v\n", userID, err)
 		return model.ErrInternalServer
 	}
 	return nil

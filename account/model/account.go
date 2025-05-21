@@ -21,11 +21,20 @@ type Account struct {
 type Transaction struct {
 	TransactionID   uuid.UUID     `json:"transaction_id"`
 	AccountID       uuid.UUID     `json:"account_id"`
-	IdempotencyKey  string        `json:"idempotency_key"`
 	Amount          int64         `json:"amount"`
 	TransactionType string        `json:"transaction_type"`
 	Status          string        `json:"status"`
 	TransferID      uuid.NullUUID `json:"transfer_id"`
 }
 
-var ErrInternalServer error = errors.New("Internal server error")
+type IdempotencyKey struct {
+	KeyID  uuid.UUID `json:"key_id"`
+	UserID uuid.UUID `json:"user_id"`
+
+	Status          string `json:"status"`
+	ResponseCode    int32  `json:"response_code"`
+	ResponseMessage string `json:"response_body"`
+}
+
+var ErrInternalServer error = errors.New("internal server error")
+var ErrIdempotencyKeyExists error = errors.New("idempotency key already exists")

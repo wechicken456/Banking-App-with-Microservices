@@ -240,44 +240,6 @@ func TestCreateTransaction_Success(t *testing.T) {
 
 	require.NotEmpty(t, createdTransaction)
 	require.Equal(t, transaction.AccountID, createdTransaction.AccountID)
-	require.Equal(t, transaction.IdempotencyKey, createdTransaction.IdempotencyKey)
-}
-
-// Create another transaction with the same idempotency key should fail
-func TestCreateTransaction_Idempotency(t *testing.T) {
-	t.Parallel()
-
-	db, teardown := setupTestDB(t)
-	defer teardown()
-	repo := NewAccountRepository(db)
-
-	var createdAccount *model.Account
-	tx, err := db.BeginTx(context.Background(), nil)
-	require.NoError(t, err)
-	defer tx.Rollback()
-	txRepo := repo.WithTx(tx)
-
-	user := utils.RandomUser()
-	createdAccount, err = txRepo.CreateAccount(context.Background(), user)
-	require.NoError(t, err)
-
-	transaction := utils.RandomTransaction()
-	transaction.AccountID = createdAccount.AccountID
-
-	_, err = txRepo.CreateTransaction(context.Background(), transaction)
-	require.NoError(t, err)
-
-	duplicateTransaction := &model.Transaction{
-		AccountID:       createdAccount.AccountID,
-		IdempotencyKey:  transaction.IdempotencyKey,
-		Amount:          200,
-		TransactionType: "DEPOSIT",
-		Status:          "COMPLETED",
-		TransferID:      uuid.NullUUID{Valid: false},
-	}
-
-	_, err = txRepo.CreateTransaction(context.Background(), duplicateTransaction)
-	require.Error(t, err)
 }
 
 // Multiple concurrent goroutines that create different transactions should update the account balance correctly
@@ -300,7 +262,7 @@ func TestCreateMultipleTransactions_Success(t *testing.T) {
 	require.NoError(t, err)
 
 	balance := createdAccount.Balance
-	numTransactions := 10
+	numTransactions := 50
 	errChan := make(chan error, numTransactions)
 	results := make(chan *model.Transaction, numTransactions)
 
@@ -386,7 +348,6 @@ func TestCreateTransactionWithTransferID_Success(t *testing.T) {
 	transaction := &model.Transaction{
 		TransactionID:   uuid.New(),
 		AccountID:       createdAccount.AccountID,
-		IdempotencyKey:  uuid.NewString(),
 		Amount:          100,
 		TransactionType: "TRANSFER_CREDIT",
 		Status:          "COMPLETED",

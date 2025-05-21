@@ -1,13 +1,10 @@
 -- name: CreateTransaction :one
-INSERT INTO transactions (id, idempotency_key, account_id, amount, transaction_type, status, transfer_id)
-VALUES ($1, $2, $3, $4, $5, $6, $7)
+INSERT INTO transactions (id, account_id, amount, transaction_type, status, transfer_id)
+VALUES ($1, $2, $3, $4, $5, $6)
 RETURNING *;
 
 -- name: GetTransactionByID :one
 SELECT * FROM transactions WHERE id = $1;
-
--- name: GetTransactionByIdempotencyKey :one
-SELECT * FROM transactions WHERE idempotency_key = $1;
 
 -- name: GetTransactionsByAccountID :many
 SELECT * FROM transactions WHERE account_id = $1;

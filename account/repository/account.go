@@ -17,7 +17,7 @@ type AccountRepository struct {
 }
 
 // NewAccountRepository creates a new AccountRepository.
-func NewAccountRepository(db *sqlx.DB	) *AccountRepository {
+func NewAccountRepository(db *sqlx.DB) *AccountRepository {
 	return &AccountRepository{queries: sqlc.New(db), db: db}
 }
 
@@ -42,7 +42,6 @@ func convertToModelTransaction(transaction sqlc.Transaction) *model.Transaction 
 	return &model.Transaction{
 		TransactionID:   transaction.ID,
 		AccountID:       transaction.AccountID,
-		IdempotencyKey:  transaction.IdempotencyKey,
 		Amount:          transaction.Amount,
 		TransactionType: transaction.TransactionType,
 		Status:          transaction.Status,
@@ -53,7 +52,6 @@ func convertToModelTransaction(transaction sqlc.Transaction) *model.Transaction 
 func convertToCreateTransactionParams(transaction *model.Transaction) *sqlc.CreateTransactionParams {
 	return &sqlc.CreateTransactionParams{
 		ID:              transaction.TransactionID,
-		IdempotencyKey:  transaction.IdempotencyKey,
 		AccountID:       transaction.AccountID,
 		Amount:          transaction.Amount,
 		TransactionType: transaction.TransactionType,
@@ -73,7 +71,7 @@ func convertToCreateAccountParams(account *model.Account) *sqlc.CreateAccountPar
 
 func (r *AccountRepository) CreateAccount(ctx context.Context, user *model.User) (*model.Account, error) {
 	createdAccount, err := r.queries.CreateAccount(ctx, sqlc.CreateAccountParams{
-		ID:            uuid.New(),
+		ID:            user.UserID,
 		UserID:        user.UserID,
 		Balance:       user.Balance,
 		AccountNumber: utils.RandomAccountNumber(),
@@ -135,7 +133,6 @@ func (r *AccountRepository) DeleteAccountByAccountNumber(ctx context.Context, ac
 func (r *AccountRepository) CreateTransaction(ctx context.Context, transaction *model.Transaction) (*model.Transaction, error) {
 	createdTransaction, err := r.queries.CreateTransaction(ctx, sqlc.CreateTransactionParams{
 		ID:              transaction.TransactionID,
-		IdempotencyKey:  transaction.IdempotencyKey,
 		AccountID:       transaction.AccountID,
 		Amount:          transaction.Amount,
 		TransactionType: transaction.TransactionType,
@@ -146,14 +143,6 @@ func (r *AccountRepository) CreateTransaction(ctx context.Context, transaction *
 		return nil, err
 	}
 	return convertToModelTransaction(createdTransaction), err
-}
-
-func (r *AccountRepository) GetTransactionByIdempotencyKey(ctx context.Context, idempotencyKey string) (*model.Transaction, error) {
-	transaction, err := r.queries.GetTransactionByIdempotencyKey(ctx, idempotencyKey)
-	if err != nil {
-		return nil, err
-	}
-	return convertToModelTransaction(transaction), nil
 }
 
 func (r *AccountRepository) GetTransactionByID(ctx context.Context, id uuid.UUID) (*model.Transaction, error) {
@@ -174,4 +163,33 @@ func (r *AccountRepository) GetTransactionsByAccountID(ctx context.Context, acco
 		modelTransactions[i] = convertToModelTransaction(transaction)
 	}
 	return modelTransactions, nil
+}
+
+func (r *AccountRepository) GetOrClaimIdempotencyKey(ctx context.Context, idempotencyKey *model.IdempotencyKey) (*model.IdempotencyKey, error) {
+	key, err := r.queries.CreateIdempotencyKey(ctx, sqlc.CreateIdempotencyKeyParams{
+		KeyID:  idempotencyKey.KeyID,
+		UserID: idempotencyKey.UserID,
+		Status: idempotencyKey.Status,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &model.IdempotencyKey{
+		KeyID:  key.KeyID,
+		UserID: key.UserID,
+		Status: key.Status,
+	}, nil
+}
+
+func (r *AccountRepository) UpdateIdempotencyKey(ctx context.Context, idempotencyKey *model.IdempotencyKey) (*model.IdempotencyKey, error) {
+	_, err := r.queries.UpdateIdempotencyKey(ctx, sqlc.UpdateIdempotencyKeyParams{
+		KeyID:           idempotencyKey.KeyID,
+		Status:          idempotencyKey.Status,
+		ResponseMessage: idempotencyKey.ResponseMessage,
+		ResponseCode:    idempotencyKey.ResponseCode,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return idempotencyKey, nil
 }

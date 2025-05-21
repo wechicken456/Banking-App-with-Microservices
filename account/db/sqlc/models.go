@@ -19,9 +19,19 @@ type Account struct {
 	UpdatedAt     sql.NullTime `json:"updated_at"`
 }
 
+type IdempotencyKey struct {
+	KeyID           uuid.UUID    `json:"key_id"`
+	UserID          uuid.UUID    `json:"user_id"`
+	Status          string       `json:"status"`
+	ResponseCode    int32        `json:"response_code"`
+	ResponseMessage string       `json:"response_message"`
+	CreatedAt       sql.NullTime `json:"created_at"`
+	UpdatedAt       sql.NullTime `json:"updated_at"`
+	ExpiredAt       sql.NullTime `json:"expired_at"`
+}
+
 type Transaction struct {
 	ID              uuid.UUID     `json:"id"`
-	IdempotencyKey  string        `json:"idempotency_key"`
 	AccountID       uuid.UUID     `json:"account_id"`
 	TransactionType string        `json:"transaction_type"`
 	Amount          int64         `json:"amount"`

@@ -5,6 +5,7 @@ import (
 	"account/repository"
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"log"
 	"time"
@@ -28,9 +29,16 @@ func NewAccountService(r *repository.AccountRepository, db *sqlx.DB) *AccountSer
 }
 
 func (s *AccountService) CreateAccount(ctx context.Context, user *model.User) (*model.Account, error) {
-	return s.repo.CreateAccount(ctx, user)
+	user.UserID = uuid.New()
+	createdAccount, err := s.repo.CreateAccount(ctx, user)
+	if err != nil {
+		log.Printf("gRPC CreateAccount service: Failed to create account: %v\n", err)
+		return nil, model.ErrInternalServer
+	}
+	return createdAccount, nil
 }
 
+// userID is the ID of the user who initiated the request
 func (s *AccountService) GetAccount(ctx context.Context, accountID uuid.UUID, userID uuid.UUID) (*model.Account, error) {
 	account, err := s.repo.GetAccountByID(ctx, accountID)
 	if err != nil {
@@ -50,6 +58,7 @@ func (s *AccountService) GetAccount(ctx context.Context, accountID uuid.UUID, us
 	return account, nil
 }
 
+// userID is the ID of the user who initiated the request
 func (s *AccountService) GetAccountsByUserID(ctx context.Context, userID uuid.UUID) ([]*model.Account, error) {
 	accounts, err := s.repo.GetAccountsByUserID(ctx, userID)
 	if err != nil {
@@ -80,10 +89,11 @@ func (s *AccountService) GetAccountByAccountNumber(ctx context.Context, accountN
 }
 
 // delete account by account number with exponential backoff retries
-func (s *AccountService) DeleteAccountByAccountNumber(ctx context.Context, accountNumber int64, userID uuid.UUID) error {
+// userID is the ID of the user who initiated the request
+func (s *AccountService) DeleteAccountByAccountNumber(ctx context.Context, accountNumber int64, idempotencyKey uuid.UUID, userID uuid.UUID) error {
 	var err error
 	for attempt := 0; attempt < maxRetries; attempt++ {
-		err = s.deleteAccountByAccountNumberTx(ctx, accountNumber, userID)
+		err = s.deleteAccountByAccountNumberTx(ctx, accountNumber, idempotencyKey, userID)
 		if err == nil {
 			return nil
 		}
@@ -100,7 +110,8 @@ func (s *AccountService) DeleteAccountByAccountNumber(ctx context.Context, accou
 }
 
 // use serializable isolation level for the transaction
-func (s *AccountService) deleteAccountByAccountNumberTx(ctx context.Context, accountNumber int64, userID uuid.UUID) error {
+// userID is the ID of the user who initiated the request
+func (s *AccountService) deleteAccountByAccountNumberTx(ctx context.Context, accountNumber int64, idempotencyKey uuid.UUID, userID uuid.UUID) error {
 	var (
 		tx      *sql.Tx
 		err     error
@@ -135,24 +146,74 @@ func (s *AccountService) deleteAccountByAccountNumberTx(ctx context.Context, acc
 		return model.ErrInternalServer
 	}
 
+	// Check idempotency key
+	key := &model.IdempotencyKey{
+		KeyID:  idempotencyKey,
+		UserID: userID,
+	}
+	key, err = txRepo.GetOrClaimIdempotencyKey(ctx, key)
+	if err == nil {
+		log.Printf("deleteAccountByAccountNumberTx: idempotency key already exists: %v\n", err)
+		return model.ErrIdempotencyKeyExists
+	}
+	if err != nil && err != sql.ErrNoRows {
+		log.Printf("deleteAccountByAccountNumberTx: Failed to get idempotency key: %v\n", err)
+		return model.ErrInternalServer
+	}
+
+	// Delete the account in the database
 	err = txRepo.DeleteAccountByAccountNumber(ctx, accountNumber)
 	if err != nil {
-		log.Printf("gRPC deleteAccountByAccountNumberTx service: Failed to delete account: %v\n", err)
+		log.Printf("deleteAccountByAccountNumberTx service: Failed to delete account: %v\n", err)
 		if err == sql.ErrNoRows {
 			return errors.New("account not found")
 		}
 		return model.ErrInternalServer
 	}
 
+	// Update the idempotency key
+	key.Status = "COMPLETED"
+	key.ResponseMessage = string("success")
+	if key, err = txRepo.UpdateIdempotencyKey(ctx, key); err != nil {
+		log.Printf("deleteAccountByAccountNumberTx: Failed to update idempotency key: %v\n", err)
+		return model.ErrInternalServer
+	}
+
 	// Commit transaction
 	if err := tx.Commit(); err != nil {
-		log.Printf("gRPC deleteAccountByAccountNumberTx service: Failed to commit transaction: %v\n", err)
+		log.Printf("deleteAccountByAccountNumberTx service: Failed to commit transaction: %v\n", err)
 		return model.ErrInternalServer
 	}
 	return nil
 }
 
-func (s *AccountService) CreateTransaction(ctx context.Context, transaction *model.Transaction, userID uuid.UUID) (*model.Transaction, error) {
+// delete account by account number with exponential backoff retries
+// userID is the ID of the user who initiated the request
+func (s *AccountService) CreateTransaction(ctx context.Context, transaction *model.Transaction, idempotencyKey uuid.UUID, userID uuid.UUID) (*model.Transaction, error) {
+	var (
+		res *model.Transaction
+		err error
+	)
+
+	for attempt := 0; attempt < maxRetries; attempt++ {
+		res, err = s.createTransactionTx(ctx, transaction, idempotencyKey, userID)
+		if err == nil {
+			return res, nil
+		}
+		// Check for serialization failure (Postgres error code 40001: https://www.postgresql.org/docs/current/mvcc-serialization-failure-handling.html)
+		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code == "40001" {
+			log.Printf("Serialization failure, retrying CreateTransaction (attempt %d): %v", attempt+1, err)
+			time.Sleep(time.Duration(attempt+1) * 100 * time.Millisecond) // Exponential backoff
+			continue
+		}
+		break // Non-retryable error
+	}
+	log.Printf("gRPC CreateTransaction service: Failed to create account after %d attempts: %v\n", maxRetries, err)
+	return nil, err
+}
+
+// userID is the ID of the user who initiated the request
+func (s *AccountService) createTransactionTx(ctx context.Context, transaction *model.Transaction, idempotencyKey uuid.UUID, userID uuid.UUID) (*model.Transaction, error) {
 	var (
 		tx                 *sql.Tx
 		err                error
@@ -161,7 +222,7 @@ func (s *AccountService) CreateTransaction(ctx context.Context, transaction *mod
 	)
 
 	// Start a transaction
-	tx, err = s.db.BeginTx(ctx, nil)
+	tx, err = s.db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelSerializable})
 	if err != nil {
 		log.Printf("gRPC CreateTransaction service: Failed to begin transaction: %v\n", err)
 		return nil, model.ErrInternalServer
@@ -174,7 +235,7 @@ func (s *AccountService) CreateTransaction(ctx context.Context, transaction *mod
 	// First check if account belongs to user
 	account, err = txRepo.GetAccountByID(ctx, transaction.AccountID)
 	if err != nil {
-		log.Printf("gRPC AddToAccountBalance service: Failed to get account: %v\n", err)
+		log.Printf("createTransactionTx: Failed to get account: %v\n", err)
 		if err == sql.ErrNoRows {
 			return nil, errors.New("account not found")
 		}
@@ -183,115 +244,176 @@ func (s *AccountService) CreateTransaction(ctx context.Context, transaction *mod
 
 	// Check ownership
 	if account.UserID != userID {
-		log.Printf("gRPC AddToAccountBalance service: Unauthorized balance modification attempt for account %v by user %v\n",
+		log.Printf("createTransactionTx: Unauthorized balance modification attempt for account %v by user %v\n",
 			account.AccountID, userID)
+		return nil, model.ErrInternalServer
+	}
+
+	// Try to insert idempotency key with status "PENDING".
+	// By Read-Committed isolation level, the statement will block if another concurrent transactional already to inserts the same key, even if it hasn't committed yet.
+	key, err := txRepo.GetOrClaimIdempotencyKey(ctx, &model.IdempotencyKey{
+		KeyID:  idempotencyKey,
+		UserID: userID,
+		Status: "PENDING",
+	})
+	if err == nil {
+		if key.Status != "PENDING" { // "PENDING" implies that we (the current transaction) is the first one to create the idempotency key
+			log.Printf("createTransactionTx: idempotency key already exists: %v\n", err)
+			cachedTransaction := &model.Transaction{}
+			err := json.Unmarshal([]byte(key.ResponseMessage), cachedTransaction)
+			if err != nil {
+				log.Printf("createTransactionTx: Failed to unmarshal transaction: %v\n", err)
+				return nil, model.ErrInternalServer
+			}
+			return cachedTransaction, nil
+		}
+	}
+	if err != nil && err != sql.ErrNoRows {
+		log.Printf("createTransactionTx: Failed to get idempotency key: %v\n", err)
 		return nil, model.ErrInternalServer
 	}
 
 	// Check if the transaction amount is valid
 	if transaction.Amount == 0 {
-		log.Printf("gRPC CreateTransaction service: Invalid transaction amount = 0\n")
+		log.Printf("createTransactionTx: Invalid transaction amount = 0\n")
 		return nil, errors.New("invalid transaction amount")
 	}
 
 	// Create the transaction in the database
 	createdTransaction, err = txRepo.CreateTransaction(ctx, transaction)
 	if err != nil {
-		log.Printf("gRPC CreateTransaction service: Failed to create transaction: %v\n", err)
+		log.Printf("createTransactionTx: Failed to create transaction: %v\n", err)
+		return nil, model.ErrInternalServer
+	}
+
+	// Update the account balance in the database
+	_, err = txRepo.AddToAccountBalance(ctx, account.AccountNumber, transaction.Amount)
+	if err != nil {
+		log.Printf("createTransactionTx: Failed to update balance: %v\n", err)
+		if err == sql.ErrNoRows {
+			return nil, errors.New("account not found")
+		}
+		return nil, model.ErrInternalServer
+	}
+
+	// Update the idempotency key status
+	key.Status = "COMPLETED"
+	marshalled, err := json.Marshal(createdTransaction)
+	if err != nil {
+		log.Printf("createTransactionTx: Failed to marshal transaction: %v\n", err)
+		return nil, model.ErrInternalServer
+	}
+	key.ResponseMessage = string(marshalled)
+	if key, err = txRepo.UpdateIdempotencyKey(ctx, key); err != nil {
+		log.Printf("createTransactionTx: Failed to create idempotency key: %v\n", err)
 		return nil, model.ErrInternalServer
 	}
 
 	// Commit transaction
 	if err = tx.Commit(); err != nil {
-		log.Printf("gRPC CreateTransaction service: Failed to commit transaction: %v\n", err)
+		log.Printf("createTransactionTx: Failed to commit transaction: %v\n", err)
 		return nil, model.ErrInternalServer
 	}
 	return createdTransaction, nil
 }
 
-// I think AddToAccountBalance is clearer than UpdateAccountBalance cause Update can mean "set" it to this amount instead of adding/substracting to it
-// AddToAccountBalance adds the given amount (could be negative) to the account balance and retries on serialization failure
-// with exponential backoff. It returns the updated account.
-func (s *AccountService) AddToAccountBalance(ctx context.Context, accountNumber int64, amount int64, userID uuid.UUID) (*model.Account, error) {
-	var (
-		err error
-		res *model.Account
-	)
-	for attempt := 0; attempt < maxRetries; attempt++ {
-		res, err = s.addToAccountBalanceTx(ctx, accountNumber, amount, userID)
-		if err == nil { // success
-			return res, nil
-		}
-		// Check for serialization failure (Postgres error code 40001: https://www.postgresql.org/docs/current/mvcc-serialization-failure-handling.html)
-		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code == "40001" {
-			log.Printf("Serialization failure, retrying AddToAccountBalance (attempt %d): %v", attempt+1, err)
-			time.Sleep(time.Duration(attempt+1) * 100 * time.Millisecond) // Exponential backoff
-			continue
-		}
-		break // Non-retryable error
-	}
-	log.Printf("gRPC AddToAccountBalance service: Failed to add to account balance after %d attempts: %v\n", maxRetries, err)
-	return nil, err
-}
+// // I think AddToAccountBalance is clearer than UpdateAccountBalance cause Update can mean "set" it to this amount instead of adding/substracting to it
+// // AddToAccountBalance adds the given amount (could be negative) to the account balance and retries on serialization failure
+// // with exponential backoff. It returns the updated account.
+// // userID is the ID of the user who initiated the request
+// func (s *AccountService) AddToAccountBalance(ctx context.Context, accountNumber int64, amount int64, idempotencyKey uuid.UUID, userID uuid.UUID) (*model.Account, error) {
+// 	var (
+// 		err error
+// 		res *model.Account
+// 	)
+// 	for attempt := 0; attempt < maxRetries; attempt++ {
+// 		res, err = s.addToAccountBalanceTx(ctx, accountNumber, amount, userID)
+// 		if err == nil { // success
+// 			return res, nil
+// 		}
+// 		// Check for serialization failure (Postgres error code 40001: https://www.postgresql.org/docs/current/mvcc-serialization-failure-handling.html)
+// 		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code == "40001" {
+// 			log.Printf("Serialization failure, retrying AddToAccountBalance (attempt %d): %v", attempt+1, err)
+// 			time.Sleep(time.Duration(attempt+1) * 100 * time.Millisecond) // Exponential backoff
+// 			continue
+// 		}
+// 		break // Non-retryable error
+// 	}
+// 	log.Printf("gRPC AddToAccountBalance service: Failed to add to account balance after %d attempts: %v\n", maxRetries, err)
+// 	return nil, err
+// }
 
-func (s *AccountService) addToAccountBalanceTx(ctx context.Context, accountNumber int64, amount int64, userID uuid.UUID) (*model.Account, error) {
-	var (
-		tx             *sql.Tx
-		err            error
-		account        *model.Account
-		updatedAccount *model.Account
-	)
+// // userID is the ID of the user who initiated the request
+// func (s *AccountService) addToAccountBalanceTx(ctx context.Context, accountNumber int64, amount int64, idempotencyKey uuid.UUID, userID uuid.UUID) (*model.Account, error) {
+// 	var (
+// 		tx             *sql.Tx
+// 		err            error
+// 		account        *model.Account
+// 		updatedAccount *model.Account
+// 	)
 
-	// Start a transaction
-	tx, err = s.db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelSerializable})
-	if err != nil {
-		log.Printf("gRPC addToAccountBalanceTx service: Failed to begin transaction: %v\n", err)
-		return nil, model.ErrInternalServer
-	}
-	defer tx.Rollback()
+// 	// Start a transaction
+// 	tx, err = s.db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelSerializable})
+// 	if err != nil {
+// 		log.Printf("gRPC addToAccountBalanceTx service: Failed to begin transaction: %v\n", err)
+// 		return nil, model.ErrInternalServer
+// 	}
+// 	defer tx.Rollback()
 
-	// Create a new repository with the transaction
-	txRepo := s.repo.WithTx(tx)
+// 	// Create a new repository with the transaction
+// 	txRepo := s.repo.WithTx(tx)
 
-	// First check if account belongs to user
-	account, err = txRepo.GetAccountByAccountNumber(ctx, accountNumber)
-	if err != nil {
-		log.Printf("gRPC addToAccountBalanceTx service: Failed to get account: %v\n", err)
-		if err == sql.ErrNoRows {
-			return nil, errors.New("account not found")
-		}
-		return nil, model.ErrInternalServer
-	}
+// 	// First check if account belongs to user
+// 	account, err = txRepo.GetAccountByAccountNumber(ctx, accountNumber)
+// 	if err != nil {
+// 		log.Printf("gRPC addToAccountBalanceTx service: Failed to get account: %v\n", err)
+// 		if err == sql.ErrNoRows {
+// 			return nil, errors.New("account not found")
+// 		}
+// 		return nil, model.ErrInternalServer
+// 	}
 
-	// Check ownership
-	if account.UserID != userID {
-		log.Printf("gRPC addToAccountBalanceTx service: Unauthorized balance modification attempt for account %v by user %v\n",
-			accountNumber, userID)
-		return nil, model.ErrInternalServer
-	}
+// 	// Check ownership
+// 	if account.UserID != userID {
+// 		log.Printf("gRPC addToAccountBalanceTx service: Unauthorized balance modification attempt for account %v by user %v\n",
+// 			accountNumber, userID)
+// 		return nil, model.ErrInternalServer
+// 	}
 
-	// Update the account balance in the database
-	updatedAccount, err = txRepo.AddToAccountBalance(ctx, accountNumber, amount)
-	if err != nil {
-		log.Printf("gRPC addToAccountBalanceTx service: Failed to update balance: %v\n", err)
-		if err == sql.ErrNoRows {
-			return nil, errors.New("account not found")
-		}
-		return nil, model.ErrInternalServer
-	}
+// 	// Check Idempotency key
+// 	key, err := txRepo.GetIdempotencyKey(ctx, idempotencyKey)
+// 	if err != nil {
+// 		log.Printf("gRPC addToAccountBalanceTx: Failed to get idempotency key: %v\n", err)
+// 		return nil, model.ErrInternalServer
+// 	}
+// 	if key != nil {
+// 		log.Printf("gRPC addToAccountBalanceTx: Idempotency key %v already exists\n", idempotencyKey)
+// 		return nil, model.ErrIdempotencyKeyExists
+// 	}
 
-	// Commit transaction
-	if err = tx.Commit(); err != nil {
-		log.Printf("gRPC addToAccountBalanceTx service: Failed to commit transaction: %v\n", err)
-		return nil, model.ErrInternalServer
-	}
-	return updatedAccount, nil
-}
+// 	// Update the account balance in the database
+// 	updatedAccount, err = txRepo.AddToAccountBalance(ctx, accountNumber, amount)
+// 	if err != nil {
+// 		log.Printf("gRPC addToAccountBalanceTx service: Failed to update balance: %v\n", err)
+// 		if err == sql.ErrNoRows {
+// 			return nil, errors.New("account not found")
+// 		}
+// 		return nil, model.ErrInternalServer
+// 	}
+
+// 	// Commit transaction
+// 	if err = tx.Commit(); err != nil {
+// 		log.Printf("gRPC addToAccountBalanceTx service: Failed to commit transaction: %v\n", err)
+// 		return nil, model.ErrInternalServer
+// 	}
+// 	return updatedAccount, nil
+// }
 
 // we want repeatable read since we need to make sure that this account still exists after checking if the user is the owner
 // since we're only reading data, we don't have to retry as per the Postgres documentation:
 // "Note that only updating transactions might need to be retried; read-only transactions will never have serialization conflicts."
 // https://www.postgresql.org/docs/current/transaction-iso.html#XACT-REPEATABLE-READ
+// userID is the ID of the user who initiated the request
 func (s *AccountService) GetTransactionsByAccountID(ctx context.Context, accountID uuid.UUID, userID uuid.UUID) ([]*model.Transaction, error) {
 	var (
 		tx      *sql.Tx
@@ -302,7 +424,7 @@ func (s *AccountService) GetTransactionsByAccountID(ctx context.Context, account
 	// Start a transaction
 	tx, err = s.db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelRepeatableRead})
 	if err != nil {
-		log.Printf("gRPC AddToAccountBalance service: Failed to begin transaction: %v\n", err)
+		log.Printf("gRPC GetTransactionsByAccountID service: Failed to begin transaction: %v\n", err)
 		return nil, model.ErrInternalServer
 	}
 	defer tx.Rollback()
@@ -339,6 +461,7 @@ func (s *AccountService) GetTransactionsByAccountID(ctx context.Context, account
 }
 
 // Check if an account exists and belongs to the given user
+// userID is the ID of the user who initiated the request
 func (s *AccountService) ValidateAccountNumber(ctx context.Context, accountNumber int64, userID uuid.UUID) (bool, error) {
 	account, err := s.repo.GetAccountByAccountNumber(ctx, accountNumber)
 	if err != nil {
@@ -358,6 +481,7 @@ func (s *AccountService) ValidateAccountNumber(ctx context.Context, accountNumbe
 }
 
 // Function to check if account has sufficient balance and belongs to the user
+// userID is the ID of the user who initiated the request
 func (s *AccountService) HasSufficientBalance(ctx context.Context, accountNumber int64, amount int64, userID uuid.UUID) (bool, error) {
 	account, err := s.repo.GetAccountByAccountNumber(ctx, accountNumber)
 	if err != nil {

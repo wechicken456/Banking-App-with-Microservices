@@ -56,7 +56,7 @@ func RandomAccount() *model.Account {
 }
 
 func RandomTransactionType() string {
-	types := []string{"DEPOSIT", "WITHDRAWAL"}
+	types := []string{"CREDIT", "DEBIT", "TRANSFER_CREDIT", "TRANSFER_DEBIT"}
 	return types[rand.Intn(len(types))]
 }
 
@@ -83,7 +83,6 @@ func RandomTransaction() *model.Transaction {
 	return &model.Transaction{
 		TransactionID:   uuid.New(),
 		AccountID:       uuid.New(),
-		IdempotencyKey:  RandomString(10),
 		TransactionType: RandomTransactionType(),
 		Status:          RandomTransactionStatus(),
 		TransferID:      RandomTransferID(),
