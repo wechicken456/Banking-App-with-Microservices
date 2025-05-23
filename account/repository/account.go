@@ -132,7 +132,7 @@ func (r *AccountRepository) DeleteAccountByAccountNumber(ctx context.Context, ac
 
 func (r *AccountRepository) CreateTransaction(ctx context.Context, transaction *model.Transaction) (*model.Transaction, error) {
 	createdTransaction, err := r.queries.CreateTransaction(ctx, sqlc.CreateTransactionParams{
-		ID:              transaction.TransactionID,
+		ID:              uuid.New(),
 		AccountID:       transaction.AccountID,
 		Amount:          transaction.Amount,
 		TransactionType: transaction.TransactionType,
@@ -166,18 +166,18 @@ func (r *AccountRepository) GetTransactionsByAccountID(ctx context.Context, acco
 }
 
 func (r *AccountRepository) GetOrClaimIdempotencyKey(ctx context.Context, idempotencyKey *model.IdempotencyKey) (*model.IdempotencyKey, error) {
-	key, err := r.queries.CreateIdempotencyKey(ctx, sqlc.CreateIdempotencyKeyParams{
+	key, err := r.queries.GetOrClaimIdempotencyKey(ctx, sqlc.GetOrClaimIdempotencyKeyParams{
 		KeyID:  idempotencyKey.KeyID,
 		UserID: idempotencyKey.UserID,
-		Status: idempotencyKey.Status,
 	})
 	if err != nil {
 		return nil, err
 	}
 	return &model.IdempotencyKey{
-		KeyID:  key.KeyID,
-		UserID: key.UserID,
-		Status: key.Status,
+		KeyID:           key.KeyID,
+		UserID:          key.UserID,
+		Status:          key.Status,
+		ResponseMessage: key.ResponseMessage,
 	}, nil
 }
 
@@ -186,10 +186,25 @@ func (r *AccountRepository) UpdateIdempotencyKey(ctx context.Context, idempotenc
 		KeyID:           idempotencyKey.KeyID,
 		Status:          idempotencyKey.Status,
 		ResponseMessage: idempotencyKey.ResponseMessage,
-		ResponseCode:    idempotencyKey.ResponseCode,
 	})
 	if err != nil {
 		return nil, err
 	}
 	return idempotencyKey, nil
+}
+
+func (r *AccountRepository) DeleteIdempotencyKeyByID(ctx context.Context, idempotencyKey uuid.UUID) error {
+	err := r.queries.DeleteIdempotencyKeyByID(ctx, idempotencyKey)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *AccountRepository) DeleteIdempotencyKeyByUserID(ctx context.Context, userID uuid.UUID) error {
+	err := r.queries.DeleteIdempotencyKeysByUserID(ctx, userID)
+	if err != nil {
+		return err
+	}
+	return nil
 }

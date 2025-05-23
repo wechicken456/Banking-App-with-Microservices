@@ -1,15 +1,11 @@
--- name: CreateIdempotencyKey :one 
-INSERT INTO idempotency_keys (key_id, user_id, status, created_at, updated_at)
-VALUES ($1, $2, $3, NOW(), NOW())
-RETURNING *;
 
 -- name: GetIdempotencyKeyByID :one
 SELECT * FROM idempotency_keys WHERE key_id = $1;
 
 -- name: UpdateIdempotencyKeyByID :exec
 UPDATE idempotency_keys
-SET status = $1, response_code = $2, response_message = $3, updated_at = NOW()
-WHERE key_id = $4;
+SET status = $1, response_message = $2, updated_at = NOW()
+WHERE key_id = $3;
 
 -- name: DeleteIdempotencyKeyByID :exec
 DELETE FROM idempotency_keys
@@ -32,7 +28,6 @@ INSERT INTO idempotency_keys (
     key_id,
     user_id,
     status,            
-    response_code,      
     response_message,     
     created_at,
     updated_at,
@@ -40,15 +35,14 @@ INSERT INTO idempotency_keys (
 )
 VALUES (
     $1,  
-    $2,  -
+    $2,  
     'PENDING',
-    0, 
-    "placeholder", 
+    'placeholder', 
     NOW(),
     NOW(),
-    $3   -- expired_at (e.g., NOW() + interval '24 hours')
+    NOW() + interval '24 hours'
 )
-ON CONFLICT (idempotency_key_id, user_id)
+ON CONFLICT (key_id, user_id)
 DO UPDATE SET
     -- Only touch 'updated_at' if the existing status is 'PENDING', to signify this transaction is actively looking at it.
     -- If it's already 'COMPLETED' or 'FAILED', we don't want to modify it here; RETURNING * will give us its state.
@@ -63,6 +57,6 @@ RETURNING *;
 
 -- name: UpdateIdempotencyKey :one
 UPDATE idempotency_keys
-SET status = $1, response_code = $2, response_message = $3, updated_at = NOW(), expired_at = NOW() + interval '24 hours'
-WHERE key_id = $4
+SET status = $1, response_message = $2, updated_at = NOW(), expired_at = NOW() + interval '24 hours'
+WHERE key_id = $3
 RETURNING *;

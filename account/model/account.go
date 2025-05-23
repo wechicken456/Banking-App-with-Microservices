@@ -32,9 +32,9 @@ type IdempotencyKey struct {
 	UserID uuid.UUID `json:"user_id"`
 
 	Status          string `json:"status"`
-	ResponseCode    int32  `json:"response_code"`
 	ResponseMessage string `json:"response_body"`
 }
 
 var ErrInternalServer error = errors.New("internal server error")
 var ErrIdempotencyKeyExists error = errors.New("idempotency key already exists")
+var ErrUserIDMismatch error = errors.New("user id mismatch")

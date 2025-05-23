@@ -28,11 +28,106 @@ func NewAccountService(r *repository.AccountRepository, db *sqlx.DB) *AccountSer
 	return &AccountService{repo: r, db: db}
 }
 
-func (s *AccountService) CreateAccount(ctx context.Context, user *model.User) (*model.Account, error) {
-	user.UserID = uuid.New()
-	createdAccount, err := s.repo.CreateAccount(ctx, user)
+// userID is the ID of the user who initiated the request
+func (s *AccountService) CreateAccount(ctx context.Context, user *model.User, idempotencyKey uuid.UUID, userID uuid.UUID) (*model.Account, error) {
+
+	// Check if the user ID in the request matches the user ID in the context
+	if userID != user.UserID {
+		log.Printf("gRPC CreateAccount service: User ID mismatch: %v != %v\n", userID, user.UserID)
+		return nil, model.ErrUserIDMismatch
+	}
+
+	var (
+		attempt int
+		backoff int
+		res     *model.Account
+		err     error
+	)
+
+	backoff = 2
+
+	for attempt = 0; attempt < maxRetries; attempt++ {
+		res, err = s.createAccountTx(ctx, user, idempotencyKey, userID)
+		if err == nil {
+			return res, nil
+		}
+		// Check for serialization failure (Postgres error code 40001: https://www.postgresql.org/docs/current/mvcc-serialization-failure-handling.html)
+		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code == "40001" {
+			log.Printf("Serialization failure, retrying CreateTransaction (attempt %d): %v", attempt+1, err)
+			time.Sleep(time.Duration(backoff) * 100 * time.Millisecond) // Exponential backoff
+			backoff *= 2
+			continue
+		}
+		break // Non-retryable error
+	}
+	log.Printf("gRPC CreateTransaction service: Failed to create account after %d attempts: %v\n", attempt+1, err)
+	return nil, err
+}
+
+// userID is the ID of the user who initiated the request
+func (s *AccountService) createAccountTx(ctx context.Context, user *model.User, idempotencyKey uuid.UUID, userID uuid.UUID) (*model.Account, error) {
+	var (
+		tx             *sql.Tx
+		err            error
+		createdAccount *model.Account
+	)
+
+	// Start a transaction
+	tx, err = s.db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
 	if err != nil {
-		log.Printf("gRPC CreateAccount service: Failed to create account: %v\n", err)
+		log.Printf("createAccountTx: Failed to begin transaction: %v\n", err)
+		return nil, model.ErrInternalServer
+	}
+	defer tx.Rollback()
+
+	// Create a new repository with the transaction
+	txRepo := s.repo.WithTx(tx)
+
+	// Try to insert idempotency key with status "PENDING".
+	// the statement will block if another concurrent transactional already to inserts the same key, even if it hasn't committed yet.
+	key, err := txRepo.GetOrClaimIdempotencyKey(ctx, &model.IdempotencyKey{
+		KeyID:  idempotencyKey,
+		UserID: userID,
+		Status: "PENDING",
+	})
+	if err == nil {
+		if key.Status != "PENDING" { // "PENDING" implies that we (the current transaction) is the first one to create the idempotency key. Otherwise, we blocked while another transaction inserted the same key.
+			log.Printf("createAccountTx: idempotency key already exists: %v\n", err)
+			cachedAccount := &model.Account{}
+			err := json.Unmarshal([]byte(key.ResponseMessage), cachedAccount)
+			if err != nil {
+				log.Printf("createAccountTx: Failed to unmarshal transaction: %v\n", err)
+				return nil, model.ErrInternalServer
+			}
+			return cachedAccount, nil
+		}
+	} else {
+		log.Printf("createAccountTx: Failed to get idempotency key: %v\n", err)
+		return nil, model.ErrInternalServer
+	}
+
+	createdAccount, err = txRepo.CreateAccount(ctx, user)
+	if err != nil {
+		log.Printf("createAccountTx: Failed to create account: %v\n", err)
+		return nil, model.ErrInternalServer
+	}
+
+	// Update the idempotency key status
+	key.Status = "COMPLETED"
+	marshalled, err := json.Marshal(createdAccount)
+	if err != nil {
+		log.Printf("createAccountTx: Failed to marshal transaction: %v\n", err)
+		return nil, model.ErrInternalServer
+	}
+	key.ResponseMessage = string(marshalled)
+
+	if _, err = txRepo.UpdateIdempotencyKey(ctx, key); err != nil {
+		log.Printf("createAccountTx: Failed to create idempotency key: %v\n", err)
+		return nil, model.ErrInternalServer
+	}
+
+	if err = tx.Commit(); err != nil {
+		log.Printf("createAccountTx: Failed to commit transaction: %v\n", err)
 		return nil, model.ErrInternalServer
 	}
 	return createdAccount, nil
@@ -91,7 +186,14 @@ func (s *AccountService) GetAccountByAccountNumber(ctx context.Context, accountN
 // delete account by account number with exponential backoff retries
 // userID is the ID of the user who initiated the request
 func (s *AccountService) DeleteAccountByAccountNumber(ctx context.Context, accountNumber int64, idempotencyKey uuid.UUID, userID uuid.UUID) error {
-	var err error
+	var (
+		attempt int
+		backoff int
+		err     error
+	)
+
+	backoff = 2
+
 	for attempt := 0; attempt < maxRetries; attempt++ {
 		err = s.deleteAccountByAccountNumberTx(ctx, accountNumber, idempotencyKey, userID)
 		if err == nil {
@@ -100,12 +202,13 @@ func (s *AccountService) DeleteAccountByAccountNumber(ctx context.Context, accou
 		// Check for serialization failure (Postgres error code 40001: https://www.postgresql.org/docs/current/mvcc-serialization-failure-handling.html)
 		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code == "40001" {
 			log.Printf("Serialization failure, retrying DeleteAccountByAccountNumber (attempt %d): %v", attempt+1, err)
-			time.Sleep(time.Duration(attempt+1) * 100 * time.Millisecond) // Exponential backoff
+			time.Sleep(time.Duration(backoff) * 100 * time.Millisecond) // Exponential backoff
+			backoff *= 2
 			continue
 		}
 		break // Non-retryable error
 	}
-	log.Printf("gRPC DeleteAccountByAccountNumber service: Failed to delete account after %d attempts: %v\n", maxRetries, err)
+	log.Printf("gRPC DeleteAccountByAccountNumber service: Failed to delete account after %d attempts: %v\n", attempt+1, err)
 	return err
 }
 
@@ -146,17 +249,21 @@ func (s *AccountService) deleteAccountByAccountNumberTx(ctx context.Context, acc
 		return model.ErrInternalServer
 	}
 
-	// Check idempotency key
-	key := &model.IdempotencyKey{
+	key, err := txRepo.GetOrClaimIdempotencyKey(ctx, &model.IdempotencyKey{
 		KeyID:  idempotencyKey,
 		UserID: userID,
-	}
-	key, err = txRepo.GetOrClaimIdempotencyKey(ctx, key)
+		Status: "PENDING",
+	})
 	if err == nil {
-		log.Printf("deleteAccountByAccountNumberTx: idempotency key already exists: %v\n", err)
-		return model.ErrIdempotencyKeyExists
-	}
-	if err != nil && err != sql.ErrNoRows {
+		if key.Status != "PENDING" { // "PENDING" implies that we (the current transaction) is the first one to create the idempotency key. Otherwise, we blocked while another transaction inserted the same key.
+			log.Printf("deleteAccountByAccountNumberTx: idempotency key already exists: %v\n", err)
+			if err != nil {
+				log.Printf("deleteAccountByAccountNumberTx: Failed to unmarshal transaction: %v\n", err)
+				return model.ErrInternalServer
+			}
+			return nil
+		}
+	} else if err != sql.ErrNoRows {
 		log.Printf("deleteAccountByAccountNumberTx: Failed to get idempotency key: %v\n", err)
 		return model.ErrInternalServer
 	}
@@ -174,7 +281,7 @@ func (s *AccountService) deleteAccountByAccountNumberTx(ctx context.Context, acc
 	// Update the idempotency key
 	key.Status = "COMPLETED"
 	key.ResponseMessage = string("success")
-	if key, err = txRepo.UpdateIdempotencyKey(ctx, key); err != nil {
+	if _, err = txRepo.UpdateIdempotencyKey(ctx, key); err != nil {
 		log.Printf("deleteAccountByAccountNumberTx: Failed to update idempotency key: %v\n", err)
 		return model.ErrInternalServer
 	}
@@ -187,15 +294,81 @@ func (s *AccountService) deleteAccountByAccountNumberTx(ctx context.Context, acc
 	return nil
 }
 
-// delete account by account number with exponential backoff retries
-// userID is the ID of the user who initiated the request
-func (s *AccountService) CreateTransaction(ctx context.Context, transaction *model.Transaction, idempotencyKey uuid.UUID, userID uuid.UUID) (*model.Transaction, error) {
+// delete the idempotency key given its ID with exponential backoff retries
+// should be used internally only so we don't need to check for ownership
+func (s *AccountService) DeleteIdempotencyKeyByID(ctx context.Context, idempotencyKey uuid.UUID) error {
 	var (
-		res *model.Transaction
+		attempt int
+		backoff int
+		err     error
+	)
+
+	backoff = 2
+
+	for attempt := 0; attempt < maxRetries; attempt++ {
+		err = s.deleteIdempotencyKeyByIDTx(ctx, idempotencyKey)
+		if err == nil {
+			return nil
+		}
+		// Check for serialization failure (Postgres error code 40001: https://www.postgresql.org/docs/current/mvcc-serialization-failure-handling.html)
+		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code == "40001" {
+			log.Printf("Serialization failure, retrying DeleteIdempotencyKeyByID (attempt %d): %v", attempt+1, err)
+			time.Sleep(time.Duration(backoff) * 100 * time.Millisecond) // Exponential backoff
+			backoff *= 2
+			continue
+		}
+		break // Non-retryable error
+	}
+	log.Printf("gRPC DeleteIdempotencyKeyByID service: Failed to delete account after %d attempts: %v\n", attempt+1, err)
+	return err
+}
+
+// use serializable isolation level for the transaction
+// userID is the ID of the user who initiated the request
+func (s *AccountService) deleteIdempotencyKeyByIDTx(ctx context.Context, idempotencyKey uuid.UUID) error {
+	var (
+		tx  *sql.Tx
 		err error
 	)
 
-	for attempt := 0; attempt < maxRetries; attempt++ {
+	// Start a transaction
+	tx, err = s.db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelSerializable})
+	if err != nil {
+		log.Printf("gRPC deleteIdempotencyKeyByIDTx service: Failed to begin transaction: %v\n", err)
+		return model.ErrInternalServer
+	}
+	defer tx.Rollback()
+
+	// Create a new repository with the transaction
+	txRepo := s.repo.WithTx(tx)
+
+	err = txRepo.DeleteIdempotencyKeyByID(ctx, idempotencyKey)
+	if err != nil {
+		log.Printf("gRPC deleteIdempotencyKeyByIDTx service: Failed to delete idempotency key: %v\n", err)
+		return model.ErrInternalServer
+	}
+
+	// Commit transaction
+	if err := tx.Commit(); err != nil {
+		log.Printf("deleteIdempotencyKeyByIDTx service: Failed to commit transaction: %v\n", err)
+		return model.ErrInternalServer
+	}
+	return nil
+}
+
+// create transaction with exponential backoff retries
+// userID is the ID of the user who initiated the request
+func (s *AccountService) CreateTransaction(ctx context.Context, transaction *model.Transaction, idempotencyKey uuid.UUID, userID uuid.UUID) (*model.Transaction, error) {
+	var (
+		attempt int
+		backoff int
+		res     *model.Transaction
+		err     error
+	)
+
+	backoff = 2
+
+	for attempt = 0; attempt < maxRetries; attempt++ {
 		res, err = s.createTransactionTx(ctx, transaction, idempotencyKey, userID)
 		if err == nil {
 			return res, nil
@@ -203,12 +376,13 @@ func (s *AccountService) CreateTransaction(ctx context.Context, transaction *mod
 		// Check for serialization failure (Postgres error code 40001: https://www.postgresql.org/docs/current/mvcc-serialization-failure-handling.html)
 		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code == "40001" {
 			log.Printf("Serialization failure, retrying CreateTransaction (attempt %d): %v", attempt+1, err)
-			time.Sleep(time.Duration(attempt+1) * 100 * time.Millisecond) // Exponential backoff
+			time.Sleep(time.Duration(backoff) * 100 * time.Millisecond) // Exponential backoff
+			backoff *= 2
 			continue
 		}
 		break // Non-retryable error
 	}
-	log.Printf("gRPC CreateTransaction service: Failed to create account after %d attempts: %v\n", maxRetries, err)
+	log.Printf("gRPC CreateTransaction service: Failed to create account after %d attempts: %v\n", attempt+1, err)
 	return nil, err
 }
 
@@ -222,7 +396,7 @@ func (s *AccountService) createTransactionTx(ctx context.Context, transaction *m
 	)
 
 	// Start a transaction
-	tx, err = s.db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelSerializable})
+	tx, err = s.db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
 	if err != nil {
 		log.Printf("gRPC CreateTransaction service: Failed to begin transaction: %v\n", err)
 		return nil, model.ErrInternalServer
@@ -250,15 +424,15 @@ func (s *AccountService) createTransactionTx(ctx context.Context, transaction *m
 	}
 
 	// Try to insert idempotency key with status "PENDING".
-	// By Read-Committed isolation level, the statement will block if another concurrent transactional already to inserts the same key, even if it hasn't committed yet.
+	// the statement will block if another concurrent transactional already to inserts the same key, even if it hasn't committed yet.
 	key, err := txRepo.GetOrClaimIdempotencyKey(ctx, &model.IdempotencyKey{
 		KeyID:  idempotencyKey,
 		UserID: userID,
 		Status: "PENDING",
 	})
 	if err == nil {
-		if key.Status != "PENDING" { // "PENDING" implies that we (the current transaction) is the first one to create the idempotency key
-			log.Printf("createTransactionTx: idempotency key already exists: %v\n", err)
+		if key.Status != "PENDING" { // "PENDING" implies that we (the current transaction) is the first one to create the idempotency key. Otherwise, we blocked while another transaction inserted the same key.
+			log.Printf("createTransactionTx: idempotency key already exists: %v\n", key)
 			cachedTransaction := &model.Transaction{}
 			err := json.Unmarshal([]byte(key.ResponseMessage), cachedTransaction)
 			if err != nil {
@@ -267,8 +441,7 @@ func (s *AccountService) createTransactionTx(ctx context.Context, transaction *m
 			}
 			return cachedTransaction, nil
 		}
-	}
-	if err != nil && err != sql.ErrNoRows {
+	} else {
 		log.Printf("createTransactionTx: Failed to get idempotency key: %v\n", err)
 		return nil, model.ErrInternalServer
 	}
@@ -304,7 +477,7 @@ func (s *AccountService) createTransactionTx(ctx context.Context, transaction *m
 		return nil, model.ErrInternalServer
 	}
 	key.ResponseMessage = string(marshalled)
-	if key, err = txRepo.UpdateIdempotencyKey(ctx, key); err != nil {
+	if _, err = txRepo.UpdateIdempotencyKey(ctx, key); err != nil {
 		log.Printf("createTransactionTx: Failed to create idempotency key: %v\n", err)
 		return nil, model.ErrInternalServer
 	}

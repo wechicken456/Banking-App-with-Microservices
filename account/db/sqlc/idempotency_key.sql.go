@@ -7,38 +7,9 @@ package sqlc
 
 import (
 	"context"
-	"database/sql"
 
 	"github.com/google/uuid"
 )
-
-const createIdempotencyKey = `-- name: CreateIdempotencyKey :one
-INSERT INTO idempotency_keys (key_id, user_id, status, created_at, updated_at)
-VALUES ($1, $2, $3, NOW(), NOW())
-RETURNING key_id, user_id, status, response_code, response_message, created_at, updated_at, expired_at
-`
-
-type CreateIdempotencyKeyParams struct {
-	KeyID  uuid.UUID `json:"key_id"`
-	UserID uuid.UUID `json:"user_id"`
-	Status string    `json:"status"`
-}
-
-func (q *Queries) CreateIdempotencyKey(ctx context.Context, arg CreateIdempotencyKeyParams) (IdempotencyKey, error) {
-	row := q.db.QueryRowContext(ctx, createIdempotencyKey, arg.KeyID, arg.UserID, arg.Status)
-	var i IdempotencyKey
-	err := row.Scan(
-		&i.KeyID,
-		&i.UserID,
-		&i.Status,
-		&i.ResponseCode,
-		&i.ResponseMessage,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.ExpiredAt,
-	)
-	return i, err
-}
 
 const deleteIdempotencyKeyByID = `-- name: DeleteIdempotencyKeyByID :exec
 DELETE FROM idempotency_keys
@@ -71,7 +42,7 @@ func (q *Queries) DeleteIdempotencyKeysByUserID(ctx context.Context, userID uuid
 }
 
 const getIdempotencyKeyByID = `-- name: GetIdempotencyKeyByID :one
-SELECT key_id, user_id, status, response_code, response_message, created_at, updated_at, expired_at FROM idempotency_keys WHERE key_id = $1
+SELECT key_id, user_id, status, response_message, created_at, updated_at, expired_at FROM idempotency_keys WHERE key_id = $1
 `
 
 func (q *Queries) GetIdempotencyKeyByID(ctx context.Context, keyID uuid.UUID) (IdempotencyKey, error) {
@@ -81,7 +52,6 @@ func (q *Queries) GetIdempotencyKeyByID(ctx context.Context, keyID uuid.UUID) (I
 		&i.KeyID,
 		&i.UserID,
 		&i.Status,
-		&i.ResponseCode,
 		&i.ResponseMessage,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -98,7 +68,6 @@ INSERT INTO idempotency_keys (
     key_id,
     user_id,
     status,            
-    response_code,      
     response_message,     
     created_at,
     updated_at,
@@ -106,15 +75,14 @@ INSERT INTO idempotency_keys (
 )
 VALUES (
     $1,  
-    $2,  -
+    $2,  
     'PENDING',
-    0, 
-    "placeholder", 
+    'placeholder', 
     NOW(),
     NOW(),
-    $3   -- expired_at (e.g., NOW() + interval '24 hours')
+    NOW() + interval '24 hours'
 )
-ON CONFLICT (idempotency_key_id, user_id)
+ON CONFLICT (key_id, user_id)
 DO UPDATE SET
     -- Only touch 'updated_at' if the existing status is 'PENDING', to signify this transaction is actively looking at it.
     -- If it's already 'COMPLETED' or 'FAILED', we don't want to modify it here; RETURNING * will give us its state.
@@ -125,23 +93,21 @@ DO UPDATE SET
                         THEN NOW()
                     ELSE idempotency_keys.updated_at -- Keep existing updated_at if it was COMPLETED/FAILED or different pending
                  END
-RETURNING key_id, user_id, status, response_code, response_message, created_at, updated_at, expired_at
+RETURNING key_id, user_id, status, response_message, created_at, updated_at, expired_at
 `
 
 type GetOrClaimIdempotencyKeyParams struct {
-	KeyID     uuid.UUID    `json:"key_id"`
-	UserID    uuid.UUID    `json:"user_id"`
-	ExpiredAt sql.NullTime `json:"expired_at"`
+	KeyID  uuid.UUID `json:"key_id"`
+	UserID uuid.UUID `json:"user_id"`
 }
 
 func (q *Queries) GetOrClaimIdempotencyKey(ctx context.Context, arg GetOrClaimIdempotencyKeyParams) (IdempotencyKey, error) {
-	row := q.db.QueryRowContext(ctx, getOrClaimIdempotencyKey, arg.KeyID, arg.UserID, arg.ExpiredAt)
+	row := q.db.QueryRowContext(ctx, getOrClaimIdempotencyKey, arg.KeyID, arg.UserID)
 	var i IdempotencyKey
 	err := row.Scan(
 		&i.KeyID,
 		&i.UserID,
 		&i.Status,
-		&i.ResponseCode,
 		&i.ResponseMessage,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -152,31 +118,24 @@ func (q *Queries) GetOrClaimIdempotencyKey(ctx context.Context, arg GetOrClaimId
 
 const updateIdempotencyKey = `-- name: UpdateIdempotencyKey :one
 UPDATE idempotency_keys
-SET status = $1, response_code = $2, response_message = $3, updated_at = NOW(), expired_at = NOW() + interval '24 hours'
-WHERE key_id = $4
-RETURNING key_id, user_id, status, response_code, response_message, created_at, updated_at, expired_at
+SET status = $1, response_message = $2, updated_at = NOW(), expired_at = NOW() + interval '24 hours'
+WHERE key_id = $3
+RETURNING key_id, user_id, status, response_message, created_at, updated_at, expired_at
 `
 
 type UpdateIdempotencyKeyParams struct {
 	Status          string    `json:"status"`
-	ResponseCode    int32     `json:"response_code"`
 	ResponseMessage string    `json:"response_message"`
 	KeyID           uuid.UUID `json:"key_id"`
 }
 
 func (q *Queries) UpdateIdempotencyKey(ctx context.Context, arg UpdateIdempotencyKeyParams) (IdempotencyKey, error) {
-	row := q.db.QueryRowContext(ctx, updateIdempotencyKey,
-		arg.Status,
-		arg.ResponseCode,
-		arg.ResponseMessage,
-		arg.KeyID,
-	)
+	row := q.db.QueryRowContext(ctx, updateIdempotencyKey, arg.Status, arg.ResponseMessage, arg.KeyID)
 	var i IdempotencyKey
 	err := row.Scan(
 		&i.KeyID,
 		&i.UserID,
 		&i.Status,
-		&i.ResponseCode,
 		&i.ResponseMessage,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -187,23 +146,17 @@ func (q *Queries) UpdateIdempotencyKey(ctx context.Context, arg UpdateIdempotenc
 
 const updateIdempotencyKeyByID = `-- name: UpdateIdempotencyKeyByID :exec
 UPDATE idempotency_keys
-SET status = $1, response_code = $2, response_message = $3, updated_at = NOW()
-WHERE key_id = $4
+SET status = $1, response_message = $2, updated_at = NOW()
+WHERE key_id = $3
 `
 
 type UpdateIdempotencyKeyByIDParams struct {
 	Status          string    `json:"status"`
-	ResponseCode    int32     `json:"response_code"`
 	ResponseMessage string    `json:"response_message"`
 	KeyID           uuid.UUID `json:"key_id"`
 }
 
 func (q *Queries) UpdateIdempotencyKeyByID(ctx context.Context, arg UpdateIdempotencyKeyByIDParams) error {
-	_, err := q.db.ExecContext(ctx, updateIdempotencyKeyByID,
-		arg.Status,
-		arg.ResponseCode,
-		arg.ResponseMessage,
-		arg.KeyID,
-	)
+	_, err := q.db.ExecContext(ctx, updateIdempotencyKeyByID, arg.Status, arg.ResponseMessage, arg.KeyID)
 	return err
 }

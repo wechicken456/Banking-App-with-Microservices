@@ -5,7 +5,6 @@ CREATE TABLE idempotency_keys (
     user_id UUID NOT NULL,          -- user ID of the user who initiated the request 
 
     status VARCHAR(30) NOT NULL CHECK (status IN ('PENDING', 'COMPLETED', 'FAILED')),
-    response_code INTEGER NOT NULL,              -- gRPC response code
     response_message TEXT NOT NULL,          -- gRPC response message
 
     created_at TIMESTAMPTZ DEFAULT NOW(),

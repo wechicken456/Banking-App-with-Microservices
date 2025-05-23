@@ -89,3 +89,7 @@ func RandomTransaction() *model.Transaction {
 		Amount:          int64(RandMinMax(1, 100)),
 	}
 }
+
+func RandomIdempotencyKey() uuid.UUID {
+	return uuid.New()
+}

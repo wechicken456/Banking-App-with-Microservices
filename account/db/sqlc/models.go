@@ -23,7 +23,6 @@ type IdempotencyKey struct {
 	KeyID           uuid.UUID    `json:"key_id"`
 	UserID          uuid.UUID    `json:"user_id"`
 	Status          string       `json:"status"`
-	ResponseCode    int32        `json:"response_code"`
 	ResponseMessage string       `json:"response_message"`
 	CreatedAt       sql.NullTime `json:"created_at"`
 	UpdatedAt       sql.NullTime `json:"updated_at"`

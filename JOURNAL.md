@@ -273,3 +273,11 @@ In summary, the `.pb.go` file deals with message definitions, while the `_grpc.p
 
 # May 20 - Added the service layer for `auth` microservice
 
+
+# May 23 - Finished testing and idempotency checking for the service layer of the `account` microservice. Decided that only the ReadCommitted Isolation Level is necessary. 
+
+We can use LevelReadCommitted for CreateAccount because multiple concurrent requests creating different accounts don't affect each other in any way. Multiple concurrent requests creating the *same* acocunt will wait for each other when they try to claim the idempotency key, then the key's status will be checked to make sure the same request is not executed twice.
+
+Can we use the same isolation level for CreateTransaction? The argument is the same for multiple concrrent requests with the same idempotency key. But, for multiple concurrent requests (with different idempotency keys) updating the account balance of the **same account**, there has to be a serial order of update. As per the [Read-Committed Isolation Level by PostgreSQL](https://www.postgresql.org/docs/current/transaction-iso.html#XACT-READ-COMMITTED), the 2nd conflicting update will apply the same operation to the **updated** row. Luckily, the way we update the account balance is: `SET balance = balance + $2`, so the 2nd update will use the correct updated value from the 1st update.
+
+
