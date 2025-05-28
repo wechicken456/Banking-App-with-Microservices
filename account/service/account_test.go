@@ -42,7 +42,7 @@ func TestCreateAccount_Success(t *testing.T) {
 	errChan := make(chan error, numTests)
 	keyChan := make(chan uuid.UUID, numTests)
 
-	for i := 0; i < numTests; i++ {
+	for range numTests {
 		go func() {
 
 			key := utils.RandomIdempotencyKey()
@@ -59,7 +59,7 @@ func TestCreateAccount_Success(t *testing.T) {
 		}()
 	}
 
-	for i := 0; i < numTests; i++ {
+	for range numTests {
 		err := <-errChan
 		require.NoError(t, err)
 		account := <-results
@@ -179,7 +179,7 @@ func TestCreateMultipleTransactions_Success(t *testing.T) {
 	results := make(chan *model.Transaction, numTransactions)
 	keyChan := make(chan uuid.UUID, numTransactions)
 
-	for i := 0; i < numTransactions; i++ {
+	for range numTransactions {
 		go func() {
 			key := utils.RandomIdempotencyKey()
 			transaction := utils.RandomTransaction()
@@ -195,7 +195,7 @@ func TestCreateMultipleTransactions_Success(t *testing.T) {
 		}()
 	}
 
-	for i := 0; i < numTransactions; i++ {
+	for range numTransactions {
 		err := <-errChan
 		require.NoError(t, err)
 		result := <-results
@@ -244,7 +244,7 @@ func TestCreateMultipleTransactionsIdempotencyKey_Success(t *testing.T) {
 
 	var wg sync.WaitGroup
 
-	for i := 0; i < numTransactions; i++ {
+	for range numTransactions {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()

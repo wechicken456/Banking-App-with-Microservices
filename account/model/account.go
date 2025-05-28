@@ -35,6 +35,8 @@ type IdempotencyKey struct {
 	ResponseMessage string `json:"response_body"`
 }
 
-var ErrInternalServer error = errors.New("internal server error")
-var ErrIdempotencyKeyExists error = errors.New("idempotency key already exists")
-var ErrUserIDMismatch error = errors.New("user id mismatch")
+var (
+	ErrInternalServer       error = errors.New("internal server error")
+	ErrIdempotencyKeyExists error = errors.New("idempotency key already exists")
+	ErrUserIDMismatch       error = errors.New("user id mismatch")
+)

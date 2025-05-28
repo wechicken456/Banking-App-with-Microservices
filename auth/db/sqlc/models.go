@@ -11,12 +11,21 @@ import (
 	"github.com/google/uuid"
 )
 
+type IdempotencyKey struct {
+	KeyID           string       `json:"key_id"`
+	Status          string       `json:"status"`
+	ResponseMessage string       `json:"response_message"`
+	CreatedAt       sql.NullTime `json:"created_at"`
+	UpdatedAt       sql.NullTime `json:"updated_at"`
+	ExpiredAt       sql.NullTime `json:"expired_at"`
+}
+
 type RefreshToken struct {
-	ID        uuid.UUID     `json:"id"`
-	UserID    uuid.NullUUID `json:"user_id"`
-	Token     string        `json:"token"`
-	ExpiresAt time.Time     `json:"expires_at"`
-	CreatedAt sql.NullTime  `json:"created_at"`
+	ID        uuid.UUID    `json:"id"`
+	UserID    uuid.UUID    `json:"user_id"`
+	Token     string       `json:"token"`
+	ExpiredAt time.Time    `json:"expired_at"`
+	CreatedAt sql.NullTime `json:"created_at"`
 }
 
 type User struct {

@@ -1,5 +1,5 @@
 -- name: CreateRefreshToken :one
-INSERT INTO refresh_tokens (id, user_id, token,expires_at,created_at)
+INSERT INTO refresh_tokens (id, user_id, token,expired_at,created_at)
 VALUES ($1,$2,$3,$4,$5)
 RETURNING *;
 

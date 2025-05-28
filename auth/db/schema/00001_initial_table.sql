@@ -12,9 +12,9 @@ CREATE TABLE IF NOT EXISTS "users"(
 
 CREATE TABLE IF NOT EXISTS "refresh_tokens" (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     token TEXT NOT NULL,
-    expires_at TIMESTAMPTZ NOT NULL,
+    expired_at TIMESTAMPTZ NOT NULL,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

@@ -35,7 +35,8 @@ func (h *AccountHandler) CreateAccount(ctx context.Context, req *proto.CreateAcc
 		UserID:  userID,
 		Balance: req.Balance,
 	}
-	account, err := h.service.CreateAccount(ctx, user)
+
+	account, err := h.service.CreateAccount(ctx, user, uuid.UUID(req.IdempotencyKey), uuid.UUID(req.ReqUserId))
 	if err != nil {
 		log.Printf("gRPC CreateAccount: Failed to create account: %v\n", err)
 		return nil, err
@@ -102,10 +103,10 @@ func (h *AccountHandler) CreateTransaction(ctx context.Context, req *proto.Creat
 		Amount:          req.Amount,
 		TransactionType: string(req.TransactionType),
 		Status:          "PENDING",
-		TransferID:      uuid.NullUUID{uuid.UUID(req.TransferId), true},
+		TransferID:      uuid.NullUUID{UUID: uuid.UUID(req.TransferId), Valid: true},
 	}
 
-	if transaction, err = h.service.CreateTransaction(ctx, transaction, uuid.UUID(req.IdempotentKey), userID); err != nil {
+	if transaction, err = h.service.CreateTransaction(ctx, transaction, uuid.UUID(req.IdempotencyKey), userID); err != nil {
 		log.Printf("gRPC AddToAccountBalance: Failed to create transaction: %v\n", err)
 		return nil, err
 	}
@@ -127,7 +128,7 @@ func (h *AccountHandler) DeleteAccountByAccountNumber(ctx context.Context, req *
 		return nil, err
 	}
 
-	if err = h.service.DeleteAccountByAccountNumber(ctx, req.AccountNumber, uuid.UUID(req.IdempotentKey), userID); err != nil {
+	if err = h.service.DeleteAccountByAccountNumber(ctx, req.AccountNumber, uuid.UUID(req.IdempotencyKey), userID); err != nil {
 		log.Printf("gRPC DeleteAccountByAccountNumber: Failed to delete account: %v\n", err)
 		return nil, err
 	}

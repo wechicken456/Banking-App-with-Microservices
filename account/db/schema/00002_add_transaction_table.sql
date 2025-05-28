@@ -50,8 +50,8 @@ DROP TRIGGER trigger_update_timestamp_idempotency_keys ON idempotency_keys;
 DROP INDEX idx_idempotency_key_id;
 DROP INDEX idx_idempotency_key_user_id;
 DROP INDEX idx_idempotency_key_expired_at;
-
 DROP TABLE idempotency_keys;
+
 DROP TRIGGER trigger_update_timestamp_transactions ON transactions;
 DROP INDEX idx_transaction_account_id;
 DROP INDEX idx_transaction_transfer_id;

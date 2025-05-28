@@ -21,6 +21,14 @@ func NewAuthRepository(db *sqlx.DB) *AuthRepository {
 	return &AuthRepository{queries: sqlc.New(db), db: db}
 }
 
+// WithTx returns a new AuthRepository that uses the provided transaction.
+func (r *AuthRepository) WithTx(tx *sql.Tx) *AuthRepository {
+	return &AuthRepository{
+		queries: r.queries.WithTx(tx),
+		db:      r.db,
+	}
+}
+
 func convertToModelUser(user sqlc.User) *model.User {
 	return &model.User{
 		UserID:   user.ID,
@@ -34,6 +42,14 @@ func convertToCreateUserParams(user *model.User) sqlc.CreateUserParams {
 		ID:           user.UserID,
 		Email:        user.Email,
 		PasswordHash: user.Password,
+	}
+}
+
+func convertToModelRefreshTokenRepo(token sqlc.RefreshToken) *model.RefreshTokenRepo {
+	return &model.RefreshTokenRepo{
+		UserID:    token.UserID,
+		TokenHash: token.Token,
+		ExpiredAt: token.ExpiredAt,
 	}
 }
 
@@ -85,7 +101,6 @@ func (r *AuthRepository) CreateUserTx(ctx context.Context, user *model.User) (*m
 		}
 		return nil
 	})
-
 	if err != nil {
 		return nil, err
 	}
@@ -145,16 +160,63 @@ func (r *AuthRepository) DeleteUser(ctx context.Context, id uuid.UUID) error {
 // business logic (invalid password, etc.) should be handled in the service layer
 // get user by email
 // if user exists, return user
-func (r *AuthRepository) GetLoginPasswordHash(ctx context.Context, email string) (*model.User, error) {
+func (r *AuthRepository) GetLoginPasswordHash(ctx context.Context, email string) (string, error) {
 	user, err := r.queries.GetUserByEmail(ctx, email)
+	if err != nil {
+		return "", err
+	}
+	return user.PasswordHash, nil
+}
+
+func (r *AuthRepository) CreateRefreshToken(ctx context.Context, token *model.RefreshTokenRepo) (*model.RefreshTokenRepo, error) {
+	createdToken, err := r.queries.CreateRefreshToken(ctx, sqlc.CreateRefreshTokenParams{
+		ID:        uuid.New(),
+		UserID:    token.UserID,
+		Token:     token.TokenHash,
+		ExpiredAt: token.ExpiredAt,
+	})
 	if err != nil {
 		return nil, err
 	}
+	return convertToModelRefreshTokenRepo(createdToken), nil
+}
 
-	modelUser := &model.User{
-		Email:    user.Email,
-		Password: user.PasswordHash, // Include the hash for validation in service layer
+func (r *AuthRepository) GetRefreshToken(ctx context.Context, tokenString string) (*model.RefreshTokenRepo, error) {
+	token, err := r.queries.GetRefreshToken(ctx, tokenString)
+	if err != nil {
+		return nil, err
 	}
+	return convertToModelRefreshTokenRepo(token), nil
+}
 
-	return modelUser, nil
+func (r *AuthRepository) GetOrClaimIdempotencyKey(ctx context.Context, idempotencyKey *model.IdempotencyKey) (*model.IdempotencyKey, error) {
+	key, err := r.queries.GetOrClaimIdempotencyKey(ctx, idempotencyKey.KeyID)
+	if err != nil {
+		return nil, err
+	}
+	return &model.IdempotencyKey{
+		KeyID:           key.KeyID,
+		Status:          key.Status,
+		ResponseMessage: key.ResponseMessage,
+	}, nil
+}
+
+func (r *AuthRepository) UpdateIdempotencyKey(ctx context.Context, idempotencyKey *model.IdempotencyKey) (*model.IdempotencyKey, error) {
+	_, err := r.queries.UpdateIdempotencyKey(ctx, sqlc.UpdateIdempotencyKeyParams{
+		KeyID:           idempotencyKey.KeyID,
+		Status:          idempotencyKey.Status,
+		ResponseMessage: idempotencyKey.ResponseMessage,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return idempotencyKey, nil
+}
+
+func (r *AuthRepository) DeleteIdempotencyKeyByID(ctx context.Context, idempotencyKey string) error {
+	err := r.queries.DeleteIdempotencyKeyByID(ctx, idempotencyKey)
+	if err != nil {
+		return err
+	}
+	return nil
 }

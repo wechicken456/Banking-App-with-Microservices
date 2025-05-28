@@ -46,7 +46,7 @@ func (s *AccountService) CreateAccount(ctx context.Context, user *model.User, id
 
 	backoff = 2
 
-	for attempt = 0; attempt < maxRetries; attempt++ {
+	for attempt = range maxRetries {
 		res, err = s.createAccountTx(ctx, user, idempotencyKey, userID)
 		if err == nil {
 			return res, nil
@@ -194,7 +194,7 @@ func (s *AccountService) DeleteAccountByAccountNumber(ctx context.Context, accou
 
 	backoff = 2
 
-	for attempt := 0; attempt < maxRetries; attempt++ {
+	for attempt := range maxRetries {
 		err = s.deleteAccountByAccountNumberTx(ctx, accountNumber, idempotencyKey, userID)
 		if err == nil {
 			return nil
@@ -257,12 +257,8 @@ func (s *AccountService) deleteAccountByAccountNumberTx(ctx context.Context, acc
 	if err == nil {
 		if key.Status != "PENDING" { // "PENDING" implies that we (the current transaction) is the first one to create the idempotency key. Otherwise, we blocked while another transaction inserted the same key.
 			log.Printf("deleteAccountByAccountNumberTx: idempotency key already exists: %v\n", err)
-			if err != nil {
-				log.Printf("deleteAccountByAccountNumberTx: Failed to unmarshal transaction: %v\n", err)
-				return model.ErrInternalServer
-			}
-			return nil
 		}
+		return nil
 	} else if err != sql.ErrNoRows {
 		log.Printf("deleteAccountByAccountNumberTx: Failed to get idempotency key: %v\n", err)
 		return model.ErrInternalServer
@@ -305,7 +301,7 @@ func (s *AccountService) DeleteIdempotencyKeyByID(ctx context.Context, idempoten
 
 	backoff = 2
 
-	for attempt := 0; attempt < maxRetries; attempt++ {
+	for attempt := range maxRetries {
 		err = s.deleteIdempotencyKeyByIDTx(ctx, idempotencyKey)
 		if err == nil {
 			return nil
@@ -368,7 +364,7 @@ func (s *AccountService) CreateTransaction(ctx context.Context, transaction *mod
 
 	backoff = 2
 
-	for attempt = 0; attempt < maxRetries; attempt++ {
+	for attempt = range maxRetries {
 		res, err = s.createTransactionTx(ctx, transaction, idempotencyKey, userID)
 		if err == nil {
 			return res, nil

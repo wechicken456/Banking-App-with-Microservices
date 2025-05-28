@@ -1,0 +1,74 @@
+syntax = "proto3";
+
+import "buf/validate/validate.proto";
+
+option go_package = "./proto";
+
+service AuthService {
+  rpc CreateUser(CreateUserRequest) returns (CreateUserResponse) {}
+  rpc DeleteUser(DeleteUserRequest) returns (DeleteUserResponse) {}
+  rpc Login(LoginRequest) returns (LoginResponse) {}
+  rpc RenewToken(RenewTokenRequest) returns (RenewTokenResponse) {}
+}
+
+//message fingerprint_cookieCookie {
+//  string name = 1;
+//  string value = 2;
+//  int64 max_age = 3;
+//  bool http_only = 4;
+//  bool secure = 5;
+//  string same_site = 6;
+//}
+
+message CreateUserRequest {
+  string email = 1 [(buf.validate.field).string.email = true];
+  string password = 2 [(buf.validate.field).required = true];
+  bytes idempotency_key = 3;
+}
+
+message CreateUserResponse {
+  int64 status = 1;
+  string error = 2;
+  bytes user_id = 3;
+}
+
+message DeleteUserRequest {
+  string email = 1 [(buf.validate.field).string.email = true];
+  string jwt_token = 2 [(buf.validate.field).required = true];
+  string fingerprint_cookie = 3 [(buf.validate.field).required = true];
+  bytes idempotency_key = 4;
+}
+
+message DeleteUserResponse {
+  int64 status = 1;
+  string error = 2;
+}
+
+message LoginRequest {
+  string email = 1 [(buf.validate.field).string.email = true];
+  string password = 2 [(buf.validate.field).required = true];
+  bytes idempotency_key = 3;
+}
+
+message LoginResponse {
+  int64 status = 1;
+  string error = 2;
+  bytes user_id = 3;
+  string refresh_token = 4;
+  string jwt_token = 5;
+  string fingerprint_cookie = 6;
+}
+
+message RenewTokenRequest {
+  string refresh_token = 1 [(buf.validate.field).required = true];
+  string jwt_token = 2 [(buf.validate.field).required = true];
+  string fingerprint_cookie = 3 [(buf.validate.field).required = true];
+}
+
+message RenewTokenResponse {
+  int64 status = 1;
+  string error = 2;
+  string refresh_token = 4;
+  string jwt_token = 5;
+  string fingerprint_cookie = 6;
+}

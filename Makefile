@@ -19,8 +19,10 @@ sqlc:
 	cd transfer && sqlc generate && cd ..
 
 protoc:
-	protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative account/proto/account_service.proto
-
+	cd auth && buf generate
+	# protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative account/proto/account_service.proto
+	# protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative auth/proto/auth.proto
+	
 clean: goose-down
 	
 	
