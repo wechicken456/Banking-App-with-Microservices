@@ -1,4 +1,4 @@
-# 🏗️ Event-Driven Banking Microservices - Architecture Overview (Golang + PostgreSQL)
+# Banking App with Microservices - Architecture Overview (Golang + PostgreSQL)
 
 ## Architecture Overview
 
@@ -16,12 +16,12 @@ Check [JOURNAL.md](./JOURNAL.md) for my dev journal.
 
 | Service                   | Responsibilities                                                                 |
 |---------------------------|-----------------------------------------------------------------------------------|
-| **auth-service**          | User signup/login, JWT issuance and validation, password hashing                 |
+| **auth-service**          | User signup/login, JWT issuance, password hashing                 |
 | **user-service**          | Manages user profiles, user metadata, and links users to their accounts          |
 | **account-service**       | Manages account details, balances, deposits, withdrawals, and transaction history (ACID guarantees) |
 | **transfer-service**      | Orchestrates fund transfers: validates source/target accounts, invokes debit/credit via gRPC, ensures consistency |
 | **notification-service**  | Sends asynchronous email alerts (e.g. transfer success/failure) using Redis + Gmail SMTP |
-| **api-gateway**           | Entry point for client requests; routes HTTP to internal services, handles rate limiting, auth forwarding |
+| **api-gateway**           | Entry point for client requests; JWT validation, routes HTTP to internal services, handles rate limiting, auth forwarding |
 
 ---
 
