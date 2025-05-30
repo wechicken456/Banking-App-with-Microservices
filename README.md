@@ -1,6 +1,6 @@
 # 🏗️ Event-Driven Banking Microservices - Architecture Overview (Golang + PostgreSQL)
 
-## 📌 Architecture Overview
+## Architecture Overview
 
 Banking App written in **Golang** to learn about implementation of microservices. The system uses **gRPC** for inter-service communication, **Redis** for background job queueing, and **PostgreSQL** (self-hosted) for data storage. Everything is containerized via **Docker**, with future expansion to **Kubernetes**.
 
@@ -12,7 +12,7 @@ Banking App written in **Golang** to learn about implementation of microservices
 Check [JOURNAL.md](./JOURNAL.md) for my dev journal.
 
 ---
-## 🧩 Microservices
+## Microservices
 
 | Service                   | Responsibilities                                                                 |
 |---------------------------|-----------------------------------------------------------------------------------|
@@ -25,7 +25,7 @@ Check [JOURNAL.md](./JOURNAL.md) for my dev journal.
 
 ---
 
-## 🧱 Architecture Patterns
+## Architecture Patterns
 
 - **Communication**:  
   - gRPC (internal service-to-service)  
