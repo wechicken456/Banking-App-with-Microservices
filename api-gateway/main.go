@@ -31,7 +31,7 @@ func main() {
 	// --- Public Endpoints (do NOT require JWT validation) ---
 	r.Post("/login", handler.LoginHandler)
 	r.Post("/users", handler.CreateUserHandler) // Renamed from CreateUser for clarity
-	r.Post("/renew-token", handler.RenewTokenHandler)
+	r.Post("/renew-token", handler.RenewAccessTokenHandler)
 
 	// --- Protected Endpoints (require JWT validation) ---
 	// Create a sub-router or group where the AuthMiddleware will be applied.

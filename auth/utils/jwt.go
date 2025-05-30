@@ -57,7 +57,7 @@ func RandomRefreshToken() (*model.RefreshToken, error) {
 	}
 	// Create the refresh token cookie string
 	// see implementaion reference here: https://github.com/OWASP/CheatSheetSeries/blob/master/cheatsheets/JSON_Web_Token_for_Java_Cheat_Sheet.md#implementation-example-1
-	refreshTokenAsCookie := GetTokenAsCookie(model.RefreshTokenName, refreshValue, int64(model.RefreshTokenDuration))
+	refreshTokenAsCookie := GetTokenAsCookie(model.RefreshTokenCookieName, refreshValue, int64(model.RefreshTokenDuration))
 
 	// Hash refresh token
 	refreshHash := HashSha256(refreshValue)

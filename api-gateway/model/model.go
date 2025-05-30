@@ -12,7 +12,10 @@ type LoginCreds struct {
 	Password string `json:"password"`
 }
 
+type Account struct{}
+
 var (
 	FingerprintCookieName  string = "fingerprint"
 	RefreshTokenCookieName string = "refresh_token"
+	AccessTokenCookieName  string = "access_token"
 )

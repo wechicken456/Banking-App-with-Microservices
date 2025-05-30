@@ -50,6 +50,11 @@ func AuthMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
+		if claims.Subject == "" {
+			http.Error(w, "Invalid JWT subject", http.StatusUnauthorized)
+			return
+		}
+
 		// 3. Inject validated claims into the request context
 		// This makes the userID (and other claims) available to downstream handlers.
 		ctx := r.Context()

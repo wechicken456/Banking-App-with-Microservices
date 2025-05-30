@@ -84,7 +84,6 @@ func (x *CreateUserRequest) GetIdempotencyKey() string {
 
 type CreateUserResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Status        int64                  `protobuf:"varint,1,opt,name=status,proto3" json:"status,omitempty"`
 	UserId        string                 `protobuf:"bytes,3,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -120,13 +119,6 @@ func (*CreateUserResponse) Descriptor() ([]byte, []int) {
 	return file_auth_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *CreateUserResponse) GetStatus() int64 {
-	if x != nil {
-		return x.Status
-	}
-	return 0
-}
-
 func (x *CreateUserResponse) GetUserId() string {
 	if x != nil {
 		return x.UserId
@@ -134,14 +126,13 @@ func (x *CreateUserResponse) GetUserId() string {
 	return ""
 }
 
+// user_id is the ID of the user to delete. Should match ID associated with the JWT token of the request validated at the API Gateway.
 type DeleteUserRequest struct {
-	state             protoimpl.MessageState `protogen:"open.v1"`
-	Email             string                 `protobuf:"bytes,1,opt,name=email,proto3" json:"email,omitempty"`
-	JwtToken          string                 `protobuf:"bytes,2,opt,name=jwt_token,json=jwtToken,proto3" json:"jwt_token,omitempty"`
-	FingerprintCookie string                 `protobuf:"bytes,3,opt,name=fingerprint_cookie,json=fingerprintCookie,proto3" json:"fingerprint_cookie,omitempty"`
-	IdempotencyKey    string                 `protobuf:"bytes,4,opt,name=idempotency_key,json=idempotencyKey,proto3" json:"idempotency_key,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	UserId         string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	IdempotencyKey string                 `protobuf:"bytes,4,opt,name=idempotency_key,json=idempotencyKey,proto3" json:"idempotency_key,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *DeleteUserRequest) Reset() {
@@ -174,23 +165,9 @@ func (*DeleteUserRequest) Descriptor() ([]byte, []int) {
 	return file_auth_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *DeleteUserRequest) GetEmail() string {
+func (x *DeleteUserRequest) GetUserId() string {
 	if x != nil {
-		return x.Email
-	}
-	return ""
-}
-
-func (x *DeleteUserRequest) GetJwtToken() string {
-	if x != nil {
-		return x.JwtToken
-	}
-	return ""
-}
-
-func (x *DeleteUserRequest) GetFingerprintCookie() string {
-	if x != nil {
-		return x.FingerprintCookie
+		return x.UserId
 	}
 	return ""
 }
@@ -204,7 +181,6 @@ func (x *DeleteUserRequest) GetIdempotencyKey() string {
 
 type DeleteUserResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Status        int64                  `protobuf:"varint,1,opt,name=status,proto3" json:"status,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -237,13 +213,6 @@ func (x *DeleteUserResponse) ProtoReflect() protoreflect.Message {
 // Deprecated: Use DeleteUserResponse.ProtoReflect.Descriptor instead.
 func (*DeleteUserResponse) Descriptor() ([]byte, []int) {
 	return file_auth_proto_rawDescGZIP(), []int{3}
-}
-
-func (x *DeleteUserResponse) GetStatus() int64 {
-	if x != nil {
-		return x.Status
-	}
-	return 0
 }
 
 type LoginRequest struct {
@@ -307,14 +276,13 @@ func (x *LoginRequest) GetIdempotencyKey() string {
 }
 
 type LoginResponse struct {
-	state             protoimpl.MessageState `protogen:"open.v1"`
-	Status            int64                  `protobuf:"varint,1,opt,name=status,proto3" json:"status,omitempty"`
-	UserId            string                 `protobuf:"bytes,3,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	RefreshToken      string                 `protobuf:"bytes,4,opt,name=refresh_token,json=refreshToken,proto3" json:"refresh_token,omitempty"`
-	JwtToken          string                 `protobuf:"bytes,5,opt,name=jwt_token,json=jwtToken,proto3" json:"jwt_token,omitempty"`
-	FingerprintCookie string                 `protobuf:"bytes,6,opt,name=fingerprint_cookie,json=fingerprintCookie,proto3" json:"fingerprint_cookie,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserId        string                 `protobuf:"bytes,3,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	RefreshToken  string                 `protobuf:"bytes,4,opt,name=refresh_token,json=refreshToken,proto3" json:"refresh_token,omitempty"`
+	AccessToken   string                 `protobuf:"bytes,5,opt,name=access_token,json=accessToken,proto3" json:"access_token,omitempty"`
+	Fingerprint   string                 `protobuf:"bytes,6,opt,name=fingerprint,proto3" json:"fingerprint,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *LoginResponse) Reset() {
@@ -347,13 +315,6 @@ func (*LoginResponse) Descriptor() ([]byte, []int) {
 	return file_auth_proto_rawDescGZIP(), []int{5}
 }
 
-func (x *LoginResponse) GetStatus() int64 {
-	if x != nil {
-		return x.Status
-	}
-	return 0
-}
-
 func (x *LoginResponse) GetUserId() string {
 	if x != nil {
 		return x.UserId
@@ -368,44 +329,44 @@ func (x *LoginResponse) GetRefreshToken() string {
 	return ""
 }
 
-func (x *LoginResponse) GetJwtToken() string {
+func (x *LoginResponse) GetAccessToken() string {
 	if x != nil {
-		return x.JwtToken
+		return x.AccessToken
 	}
 	return ""
 }
 
-func (x *LoginResponse) GetFingerprintCookie() string {
+func (x *LoginResponse) GetFingerprint() string {
 	if x != nil {
-		return x.FingerprintCookie
+		return x.Fingerprint
 	}
 	return ""
 }
 
-type RenewTokenRequest struct {
-	state             protoimpl.MessageState `protogen:"open.v1"`
-	UserId            string                 `protobuf:"bytes,4,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	RefreshToken      string                 `protobuf:"bytes,1,opt,name=refresh_token,json=refreshToken,proto3" json:"refresh_token,omitempty"`
-	JwtToken          string                 `protobuf:"bytes,2,opt,name=jwt_token,json=jwtToken,proto3" json:"jwt_token,omitempty"`
-	FingerprintCookie string                 `protobuf:"bytes,3,opt,name=fingerprint_cookie,json=fingerprintCookie,proto3" json:"fingerprint_cookie,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+// user_id is most of the time the ID associated with the JWT token of the request validated at the API Gateway.
+type RenewAccessTokenRequest struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	UserId         string                 `protobuf:"bytes,4,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	RefreshToken   string                 `protobuf:"bytes,1,opt,name=refresh_token,json=refreshToken,proto3" json:"refresh_token,omitempty"`
+	IdempotencyKey string                 `protobuf:"bytes,3,opt,name=idempotency_key,json=idempotencyKey,proto3" json:"idempotency_key,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
-func (x *RenewTokenRequest) Reset() {
-	*x = RenewTokenRequest{}
+func (x *RenewAccessTokenRequest) Reset() {
+	*x = RenewAccessTokenRequest{}
 	mi := &file_auth_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *RenewTokenRequest) String() string {
+func (x *RenewAccessTokenRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*RenewTokenRequest) ProtoMessage() {}
+func (*RenewAccessTokenRequest) ProtoMessage() {}
 
-func (x *RenewTokenRequest) ProtoReflect() protoreflect.Message {
+func (x *RenewAccessTokenRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_auth_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -417,63 +378,54 @@ func (x *RenewTokenRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use RenewTokenRequest.ProtoReflect.Descriptor instead.
-func (*RenewTokenRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use RenewAccessTokenRequest.ProtoReflect.Descriptor instead.
+func (*RenewAccessTokenRequest) Descriptor() ([]byte, []int) {
 	return file_auth_proto_rawDescGZIP(), []int{6}
 }
 
-func (x *RenewTokenRequest) GetUserId() string {
+func (x *RenewAccessTokenRequest) GetUserId() string {
 	if x != nil {
 		return x.UserId
 	}
 	return ""
 }
 
-func (x *RenewTokenRequest) GetRefreshToken() string {
+func (x *RenewAccessTokenRequest) GetRefreshToken() string {
 	if x != nil {
 		return x.RefreshToken
 	}
 	return ""
 }
 
-func (x *RenewTokenRequest) GetJwtToken() string {
+func (x *RenewAccessTokenRequest) GetIdempotencyKey() string {
 	if x != nil {
-		return x.JwtToken
+		return x.IdempotencyKey
 	}
 	return ""
 }
 
-func (x *RenewTokenRequest) GetFingerprintCookie() string {
-	if x != nil {
-		return x.FingerprintCookie
-	}
-	return ""
+type RenewAccessTokenResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	AccessToken   string                 `protobuf:"bytes,4,opt,name=access_token,json=accessToken,proto3" json:"access_token,omitempty"`
+	Fingerprint   string                 `protobuf:"bytes,2,opt,name=fingerprint,proto3" json:"fingerprint,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
-type RenewTokenResponse struct {
-	state             protoimpl.MessageState `protogen:"open.v1"`
-	Status            int64                  `protobuf:"varint,1,opt,name=status,proto3" json:"status,omitempty"`
-	RefreshToken      string                 `protobuf:"bytes,4,opt,name=refresh_token,json=refreshToken,proto3" json:"refresh_token,omitempty"`
-	JwtToken          string                 `protobuf:"bytes,5,opt,name=jwt_token,json=jwtToken,proto3" json:"jwt_token,omitempty"`
-	FingerprintCookie string                 `protobuf:"bytes,6,opt,name=fingerprint_cookie,json=fingerprintCookie,proto3" json:"fingerprint_cookie,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
-}
-
-func (x *RenewTokenResponse) Reset() {
-	*x = RenewTokenResponse{}
+func (x *RenewAccessTokenResponse) Reset() {
+	*x = RenewAccessTokenResponse{}
 	mi := &file_auth_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *RenewTokenResponse) String() string {
+func (x *RenewAccessTokenResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*RenewTokenResponse) ProtoMessage() {}
+func (*RenewAccessTokenResponse) ProtoMessage() {}
 
-func (x *RenewTokenResponse) ProtoReflect() protoreflect.Message {
+func (x *RenewAccessTokenResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_auth_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -485,35 +437,21 @@ func (x *RenewTokenResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use RenewTokenResponse.ProtoReflect.Descriptor instead.
-func (*RenewTokenResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use RenewAccessTokenResponse.ProtoReflect.Descriptor instead.
+func (*RenewAccessTokenResponse) Descriptor() ([]byte, []int) {
 	return file_auth_proto_rawDescGZIP(), []int{7}
 }
 
-func (x *RenewTokenResponse) GetStatus() int64 {
+func (x *RenewAccessTokenResponse) GetAccessToken() string {
 	if x != nil {
-		return x.Status
-	}
-	return 0
-}
-
-func (x *RenewTokenResponse) GetRefreshToken() string {
-	if x != nil {
-		return x.RefreshToken
+		return x.AccessToken
 	}
 	return ""
 }
 
-func (x *RenewTokenResponse) GetJwtToken() string {
+func (x *RenewAccessTokenResponse) GetFingerprint() string {
 	if x != nil {
-		return x.JwtToken
-	}
-	return ""
-}
-
-func (x *RenewTokenResponse) GetFingerprintCookie() string {
-	if x != nil {
-		return x.FingerprintCookie
+		return x.Fingerprint
 	}
 	return ""
 }
@@ -523,49 +461,40 @@ var File_auth_proto protoreflect.FileDescriptor
 const file_auth_proto_rawDesc = "" +
 	"\n" +
 	"\n" +
-	"auth.proto\x12\x05proto\x1a\x1bbuf/validate/validate.proto\"\x7f\n" +
+	"auth.proto\x12\x05proto\x1a\x1bbuf/validate/validate.proto\"\x89\x01\n" +
 	"\x11CreateUserRequest\x12\x1d\n" +
 	"\x05email\x18\x01 \x01(\tB\a\xbaH\x04r\x02`\x01R\x05email\x12\"\n" +
-	"\bpassword\x18\x02 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\bpassword\x12'\n" +
-	"\x0fidempotency_key\x18\x03 \x01(\tR\x0eidempotencyKey\"E\n" +
-	"\x12CreateUserResponse\x12\x16\n" +
-	"\x06status\x18\x01 \x01(\x03R\x06status\x12\x17\n" +
-	"\auser_id\x18\x03 \x01(\tR\x06userId\"\xb7\x01\n" +
-	"\x11DeleteUserRequest\x12\x1d\n" +
-	"\x05email\x18\x01 \x01(\tB\a\xbaH\x04r\x02`\x01R\x05email\x12#\n" +
-	"\tjwt_token\x18\x02 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\bjwtToken\x125\n" +
-	"\x12fingerprint_cookie\x18\x03 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x11fingerprintCookie\x12'\n" +
-	"\x0fidempotency_key\x18\x04 \x01(\tR\x0eidempotencyKey\",\n" +
-	"\x12DeleteUserResponse\x12\x16\n" +
-	"\x06status\x18\x01 \x01(\x03R\x06status\"z\n" +
+	"\bpassword\x18\x02 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\bpassword\x121\n" +
+	"\x0fidempotency_key\x18\x03 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x0eidempotencyKey\"-\n" +
+	"\x12CreateUserResponse\x12\x17\n" +
+	"\auser_id\x18\x03 \x01(\tR\x06userId\"i\n" +
+	"\x11DeleteUserRequest\x12!\n" +
+	"\auser_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x06userId\x121\n" +
+	"\x0fidempotency_key\x18\x04 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x0eidempotencyKey\"\x14\n" +
+	"\x12DeleteUserResponse\"\x84\x01\n" +
 	"\fLoginRequest\x12\x1d\n" +
 	"\x05email\x18\x01 \x01(\tB\a\xbaH\x04r\x02`\x01R\x05email\x12\"\n" +
-	"\bpassword\x18\x02 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\bpassword\x12'\n" +
-	"\x0fidempotency_key\x18\x03 \x01(\tR\x0eidempotencyKey\"\xb1\x01\n" +
-	"\rLoginResponse\x12\x16\n" +
-	"\x06status\x18\x01 \x01(\x03R\x06status\x12\x17\n" +
+	"\bpassword\x18\x02 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\bpassword\x121\n" +
+	"\x0fidempotency_key\x18\x03 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x0eidempotencyKey\"\x92\x01\n" +
+	"\rLoginResponse\x12\x17\n" +
 	"\auser_id\x18\x03 \x01(\tR\x06userId\x12#\n" +
-	"\rrefresh_token\x18\x04 \x01(\tR\frefreshToken\x12\x1b\n" +
-	"\tjwt_token\x18\x05 \x01(\tR\bjwtToken\x12-\n" +
-	"\x12fingerprint_cookie\x18\x06 \x01(\tR\x11fingerprintCookie\"\xbf\x01\n" +
-	"\x11RenewTokenRequest\x12!\n" +
+	"\rrefresh_token\x18\x04 \x01(\tR\frefreshToken\x12!\n" +
+	"\faccess_token\x18\x05 \x01(\tR\vaccessToken\x12 \n" +
+	"\vfingerprint\x18\x06 \x01(\tR\vfingerprint\"\x9c\x01\n" +
+	"\x17RenewAccessTokenRequest\x12!\n" +
 	"\auser_id\x18\x04 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x06userId\x12+\n" +
-	"\rrefresh_token\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\frefreshToken\x12#\n" +
-	"\tjwt_token\x18\x02 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\bjwtToken\x125\n" +
-	"\x12fingerprint_cookie\x18\x03 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x11fingerprintCookie\"\x9d\x01\n" +
-	"\x12RenewTokenResponse\x12\x16\n" +
-	"\x06status\x18\x01 \x01(\x03R\x06status\x12#\n" +
-	"\rrefresh_token\x18\x04 \x01(\tR\frefreshToken\x12\x1b\n" +
-	"\tjwt_token\x18\x05 \x01(\tR\bjwtToken\x12-\n" +
-	"\x12fingerprint_cookie\x18\x06 \x01(\tR\x11fingerprintCookie2\x92\x02\n" +
+	"\rrefresh_token\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\frefreshToken\x121\n" +
+	"\x0fidempotency_key\x18\x03 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x0eidempotencyKey\"_\n" +
+	"\x18RenewAccessTokenResponse\x12!\n" +
+	"\faccess_token\x18\x04 \x01(\tR\vaccessToken\x12 \n" +
+	"\vfingerprint\x18\x02 \x01(\tR\vfingerprint2\xa4\x02\n" +
 	"\vAuthService\x12C\n" +
 	"\n" +
 	"CreateUser\x12\x18.proto.CreateUserRequest\x1a\x19.proto.CreateUserResponse\"\x00\x12C\n" +
 	"\n" +
 	"DeleteUser\x12\x18.proto.DeleteUserRequest\x1a\x19.proto.DeleteUserResponse\"\x00\x124\n" +
-	"\x05Login\x12\x13.proto.LoginRequest\x1a\x14.proto.LoginResponse\"\x00\x12C\n" +
-	"\n" +
-	"RenewToken\x12\x18.proto.RenewTokenRequest\x1a\x19.proto.RenewTokenResponse\"\x00BS\n" +
+	"\x05Login\x12\x13.proto.LoginRequest\x1a\x14.proto.LoginResponse\"\x00\x12U\n" +
+	"\x10RenewAccessToken\x12\x1e.proto.RenewAccessTokenRequest\x1a\x1f.proto.RenewAccessTokenResponse\"\x00BS\n" +
 	"\tcom.protoB\tAuthProtoP\x01Z\a./proto\xa2\x02\x03PXX\xaa\x02\x05Proto\xca\x02\x05Proto\xe2\x02\x11Proto\\GPBMetadata\xea\x02\x05Protob\x06proto3"
 
 var (
@@ -582,24 +511,24 @@ func file_auth_proto_rawDescGZIP() []byte {
 
 var file_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
 var file_auth_proto_goTypes = []any{
-	(*CreateUserRequest)(nil),  // 0: proto.CreateUserRequest
-	(*CreateUserResponse)(nil), // 1: proto.CreateUserResponse
-	(*DeleteUserRequest)(nil),  // 2: proto.DeleteUserRequest
-	(*DeleteUserResponse)(nil), // 3: proto.DeleteUserResponse
-	(*LoginRequest)(nil),       // 4: proto.LoginRequest
-	(*LoginResponse)(nil),      // 5: proto.LoginResponse
-	(*RenewTokenRequest)(nil),  // 6: proto.RenewTokenRequest
-	(*RenewTokenResponse)(nil), // 7: proto.RenewTokenResponse
+	(*CreateUserRequest)(nil),        // 0: proto.CreateUserRequest
+	(*CreateUserResponse)(nil),       // 1: proto.CreateUserResponse
+	(*DeleteUserRequest)(nil),        // 2: proto.DeleteUserRequest
+	(*DeleteUserResponse)(nil),       // 3: proto.DeleteUserResponse
+	(*LoginRequest)(nil),             // 4: proto.LoginRequest
+	(*LoginResponse)(nil),            // 5: proto.LoginResponse
+	(*RenewAccessTokenRequest)(nil),  // 6: proto.RenewAccessTokenRequest
+	(*RenewAccessTokenResponse)(nil), // 7: proto.RenewAccessTokenResponse
 }
 var file_auth_proto_depIdxs = []int32{
 	0, // 0: proto.AuthService.CreateUser:input_type -> proto.CreateUserRequest
 	2, // 1: proto.AuthService.DeleteUser:input_type -> proto.DeleteUserRequest
 	4, // 2: proto.AuthService.Login:input_type -> proto.LoginRequest
-	6, // 3: proto.AuthService.RenewToken:input_type -> proto.RenewTokenRequest
+	6, // 3: proto.AuthService.RenewAccessToken:input_type -> proto.RenewAccessTokenRequest
 	1, // 4: proto.AuthService.CreateUser:output_type -> proto.CreateUserResponse
 	3, // 5: proto.AuthService.DeleteUser:output_type -> proto.DeleteUserResponse
 	5, // 6: proto.AuthService.Login:output_type -> proto.LoginResponse
-	7, // 7: proto.AuthService.RenewToken:output_type -> proto.RenewTokenResponse
+	7, // 7: proto.AuthService.RenewAccessToken:output_type -> proto.RenewAccessTokenResponse
 	4, // [4:8] is the sub-list for method output_type
 	0, // [0:4] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name

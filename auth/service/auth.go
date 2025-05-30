@@ -5,6 +5,7 @@ import (
 	"auth/repository"
 	"auth/utils"
 	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"log"
@@ -186,14 +187,7 @@ func (s *AuthService) UpdateUserPassword(ctx context.Context, user *model.User, 
 	return updatedUser, nil
 }
 
-func (s *AuthService) DeleteUser(ctx context.Context, userID uuid.UUID, requestingUserID uuid.UUID) error {
-	// Check ownership - only allow users to delete their own account
-	if userID != requestingUserID {
-		log.Printf("DeleteUser: Unauthorized delete attempt for user %v by user %v\n",
-			userID, requestingUserID)
-		return model.ErrInternalServer
-	}
-
+func (s *AuthService) DeleteUser(ctx context.Context, userID uuid.UUID) error {
 	err := s.repo.DeleteUser(ctx, userID)
 	if err != nil {
 		log.Printf("DeleteUser: Failed to delete user %v: %v\n", userID, err)
@@ -255,7 +249,7 @@ func (s *AuthService) LoginUser(ctx context.Context, user *model.User, idempoten
 			return cachedTransaction, nil
 		}
 	} else {
-		log.Printf("createTransactionTx: Failed to get idempotency key: %v\n", err)
+		log.Printf("LoginUser: Failed to get idempotency key: %v\n", err)
 		return nil, model.ErrInternalServer
 	}
 
@@ -305,7 +299,36 @@ func (s *AuthService) LoginUser(ctx context.Context, user *model.User, idempoten
 	return ret, nil
 }
 
-func (s *AuthService) RenewAccessToken(ctx context.Context, userID uuid.UUID, idempotencyKey string) (*model.LoginResult, error) {
+func (s *AuthService) RenewAccessToken(ctx context.Context, userID uuid.UUID, refresh_token string, idempotencyKey string) (*model.AccessToken, error) {
+	// get the userID of the refresh_token
+	token, err := s.repo.GetRefreshToken(ctx, refresh_token)
+	if err != nil {
+		log.Printf("RenewAccessToken: %v", err)
+		if err == sql.ErrNoRows {
+			return nil, model.ErrInvalidJWT // TODO: change error type
+		}
+		return nil, model.ErrInternalServer
+	}
+
+	// make sure the user exists
+	user, err := s.repo.GetUserByID(ctx, userID)
+	if err != nil {
+		log.Printf("RenewAccessToken: failed to get user: %v", err)
+		return nil, model.ErrInternalServer
+	}
+
+	// check userID of refresh_token is the same as the requesting userID
+	if user.UserID != token.UserID {
+		log.Printf("RenewAccessToken: Unauthorized attempt to renew token for user %v from user %v", userID, token.UserID)
+		return nil, model.ErrNotAuthorized
+	}
+
+	// check refresh_token expiration time
+	if time.Now().Before(token.ExpiredAt) {
+		return nil, model.ErrNotAuthenticated
+	}
+
+	// begin a transaction
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		log.Printf("RenewAccessToken: failed to beign transaction: %v", err)
@@ -314,12 +337,6 @@ func (s *AuthService) RenewAccessToken(ctx context.Context, userID uuid.UUID, id
 	defer tx.Rollback()
 
 	txRepo := s.repo.WithTx(tx)
-
-	user, err := txRepo.GetUserByID(ctx, userID)
-	if err != nil {
-		log.Printf("RenewAccessToken: failed to get user: %v", err)
-		return nil, model.ErrInternalServer
-	}
 
 	// check if this is a duplicate request. If so, we shouldn't genereate another refresh token
 	// Try to insert idempotency key with status "PENDING".
@@ -331,7 +348,7 @@ func (s *AuthService) RenewAccessToken(ctx context.Context, userID uuid.UUID, id
 	if err == nil {
 		if key.Status != "PENDING" { // "PENDING" implies that we (the current transaction) is the first one to create the idempotency key. Otherwise, we blocked while another transaction inserted the same key.
 			log.Printf("RenewAccessToken: idempotency key already exists: %v\n", key)
-			cachedTransaction := &model.LoginResult{}
+			cachedTransaction := &model.AccessToken{}
 			err := json.Unmarshal([]byte(key.ResponseMessage), cachedTransaction)
 			if err != nil {
 				log.Printf("RenewAccessToken: Failed to unmarshal transaction: %v\n", err)
@@ -351,10 +368,9 @@ func (s *AuthService) RenewAccessToken(ctx context.Context, userID uuid.UUID, id
 		return nil, model.ErrInternalServer
 	}
 
-	ret := &model.LoginResult{
-		AccessToken:         accessToken.TokenString,
-		UserID:              user.UserID,
-		FingerprintAsCookie: accessToken.FingerprintCookieString,
+	ret := &model.AccessToken{
+		TokenString:             accessToken.TokenString,
+		FingerprintCookieString: accessToken.FingerprintCookieString,
 	}
 
 	// Update the idempotency key status

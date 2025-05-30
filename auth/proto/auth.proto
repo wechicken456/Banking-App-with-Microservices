@@ -25,49 +25,42 @@ service AuthService {
 message CreateUserRequest {
   string email = 1 [(buf.validate.field).string.email = true];
   string password = 2 [(buf.validate.field).required = true];
-  string idempotency_key = 3;
+  string idempotency_key = 3 [(buf.validate.field).string.uuid = true];
 }
 
 message CreateUserResponse {
-  int64 status = 1;
   string user_id = 3;
 }
 
+// user_id is the ID of the user to delete. Should match ID associated with the JWT token of the request validated at the API Gateway.
 message DeleteUserRequest {
-  string email = 1 [(buf.validate.field).string.email = true];
-  string jwt_token = 2 [(buf.validate.field).required = true];
-  string fingerprint_cookie = 3 [(buf.validate.field).required = true];
-  string idempotency_key = 4;
+  string user_id = 1 [(buf.validate.field).string.uuid = true];
+  string idempotency_key = 4 [(buf.validate.field).string.uuid = true];
 }
 
-message DeleteUserResponse {
-  int64 status = 1;
-}
+message DeleteUserResponse {}
 
 message LoginRequest {
   string email = 1 [(buf.validate.field).string.email = true];
   string password = 2 [(buf.validate.field).required = true];
-  string idempotency_key = 3;
+  string idempotency_key = 3 [(buf.validate.field).string.uuid = true];
 }
 
 message LoginResponse {
-  int64 status = 1;
   string user_id = 3;
   string refresh_token = 4;
-  string jwt_token = 5;
-  string fingerprint_cookie = 6;
+  string access_token = 5;
+  string fingerprint = 6;
 }
 
+// user_id is most of the time the ID associated with the JWT token of the request validated at the API Gateway.
 message RenewAccessTokenRequest {
   string user_id = 4 [(buf.validate.field).string.uuid = true];
   string refresh_token = 1 [(buf.validate.field).required = true];
-  string jwt_token = 2 [(buf.validate.field).required = true];
-  string fingerprint_cookie = 3 [(buf.validate.field).required = true];
+  string idempotency_key = 3 [(buf.validate.field).string.uuid = true];
 }
 
 message RenewAccessTokenResponse {
-  int64 status = 1;
-  string refresh_token = 4;
-  string jwt_token = 5;
-  string fingerprint_cookie = 6;
+  string access_token = 4;
+  string fingerprint = 2;
 }

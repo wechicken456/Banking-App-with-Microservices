@@ -317,7 +317,11 @@ Installed the [chi]() library for http router.
 Implement JWT authentication middleware, and form parsing middleware with the following [considerations](https://www.alexedwards.net/blog/how-to-properly-parse-a-json-request-body).
 
 
+# May 30 
 
+JWT token validation should happen at the API Gateway. Then the API Gateway would pass the userID of the validated token down to other microservices. 
+
+In the case of renewing an access token, the API Gateway would need to pass both the userID of the validated JWT and the `refresh_token` cookie to the `auth` microservice. This allows the `auth` microservice to query the DB for the `refresh_token`, and check if its userID matches the one from the validated JWT to prevent a malicious attacker who has stolen a JWT token from gaining a new access token to the victim account.
 
 
 

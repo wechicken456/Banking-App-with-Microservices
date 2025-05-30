@@ -19,10 +19,10 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	AuthService_CreateUser_FullMethodName = "/proto.AuthService/CreateUser"
-	AuthService_DeleteUser_FullMethodName = "/proto.AuthService/DeleteUser"
-	AuthService_Login_FullMethodName      = "/proto.AuthService/Login"
-	AuthService_RenewToken_FullMethodName = "/proto.AuthService/RenewToken"
+	AuthService_CreateUser_FullMethodName       = "/proto.AuthService/CreateUser"
+	AuthService_DeleteUser_FullMethodName       = "/proto.AuthService/DeleteUser"
+	AuthService_Login_FullMethodName            = "/proto.AuthService/Login"
+	AuthService_RenewAccessToken_FullMethodName = "/proto.AuthService/RenewAccessToken"
 )
 
 // AuthServiceClient is the client API for AuthService service.
@@ -32,7 +32,7 @@ type AuthServiceClient interface {
 	CreateUser(ctx context.Context, in *CreateUserRequest, opts ...grpc.CallOption) (*CreateUserResponse, error)
 	DeleteUser(ctx context.Context, in *DeleteUserRequest, opts ...grpc.CallOption) (*DeleteUserResponse, error)
 	Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*LoginResponse, error)
-	RenewToken(ctx context.Context, in *RenewTokenRequest, opts ...grpc.CallOption) (*RenewTokenResponse, error)
+	RenewAccessToken(ctx context.Context, in *RenewAccessTokenRequest, opts ...grpc.CallOption) (*RenewAccessTokenResponse, error)
 }
 
 type authServiceClient struct {
@@ -73,10 +73,10 @@ func (c *authServiceClient) Login(ctx context.Context, in *LoginRequest, opts ..
 	return out, nil
 }
 
-func (c *authServiceClient) RenewToken(ctx context.Context, in *RenewTokenRequest, opts ...grpc.CallOption) (*RenewTokenResponse, error) {
+func (c *authServiceClient) RenewAccessToken(ctx context.Context, in *RenewAccessTokenRequest, opts ...grpc.CallOption) (*RenewAccessTokenResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(RenewTokenResponse)
-	err := c.cc.Invoke(ctx, AuthService_RenewToken_FullMethodName, in, out, cOpts...)
+	out := new(RenewAccessTokenResponse)
+	err := c.cc.Invoke(ctx, AuthService_RenewAccessToken_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -90,7 +90,7 @@ type AuthServiceServer interface {
 	CreateUser(context.Context, *CreateUserRequest) (*CreateUserResponse, error)
 	DeleteUser(context.Context, *DeleteUserRequest) (*DeleteUserResponse, error)
 	Login(context.Context, *LoginRequest) (*LoginResponse, error)
-	RenewToken(context.Context, *RenewTokenRequest) (*RenewTokenResponse, error)
+	RenewAccessToken(context.Context, *RenewAccessTokenRequest) (*RenewAccessTokenResponse, error)
 	mustEmbedUnimplementedAuthServiceServer()
 }
 
@@ -110,8 +110,8 @@ func (UnimplementedAuthServiceServer) DeleteUser(context.Context, *DeleteUserReq
 func (UnimplementedAuthServiceServer) Login(context.Context, *LoginRequest) (*LoginResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Login not implemented")
 }
-func (UnimplementedAuthServiceServer) RenewToken(context.Context, *RenewTokenRequest) (*RenewTokenResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method RenewToken not implemented")
+func (UnimplementedAuthServiceServer) RenewAccessToken(context.Context, *RenewAccessTokenRequest) (*RenewAccessTokenResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RenewAccessToken not implemented")
 }
 func (UnimplementedAuthServiceServer) mustEmbedUnimplementedAuthServiceServer() {}
 func (UnimplementedAuthServiceServer) testEmbeddedByValue()                     {}
@@ -188,20 +188,20 @@ func _AuthService_Login_Handler(srv interface{}, ctx context.Context, dec func(i
 	return interceptor(ctx, in, info, handler)
 }
 
-func _AuthService_RenewToken_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(RenewTokenRequest)
+func _AuthService_RenewAccessToken_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RenewAccessTokenRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AuthServiceServer).RenewToken(ctx, in)
+		return srv.(AuthServiceServer).RenewAccessToken(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: AuthService_RenewToken_FullMethodName,
+		FullMethod: AuthService_RenewAccessToken_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AuthServiceServer).RenewToken(ctx, req.(*RenewTokenRequest))
+		return srv.(AuthServiceServer).RenewAccessToken(ctx, req.(*RenewAccessTokenRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -226,8 +226,8 @@ var AuthService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _AuthService_Login_Handler,
 		},
 		{
-			MethodName: "RenewToken",
-			Handler:    _AuthService_RenewToken_Handler,
+			MethodName: "RenewAccessToken",
+			Handler:    _AuthService_RenewAccessToken_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

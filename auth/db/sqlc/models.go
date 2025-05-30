@@ -12,7 +12,7 @@ import (
 )
 
 type IdempotencyKey struct {
-	KeyID           string       `json:"key_id"`
+	KeyID           uuid.UUID    `json:"key_id"`
 	Status          string       `json:"status"`
 	ResponseMessage string       `json:"response_message"`
 	CreatedAt       sql.NullTime `json:"created_at"`

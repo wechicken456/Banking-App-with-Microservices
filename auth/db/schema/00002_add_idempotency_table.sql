@@ -1,7 +1,7 @@
 -- +goose Up
 -- +goose StatementBegin
 CREATE TABLE idempotency_keys (
-    key_id TEXT PRIMARY KEY DEFAULT gen_random_uuid(),
+    key_id UUID  PRIMARY KEY DEFAULT gen_random_uuid(),
 
     status VARCHAR(30) NOT NULL CHECK (status IN ('PENDING', 'COMPLETED', 'FAILED')),
     response_message TEXT NOT NULL,          -- gRPC response message

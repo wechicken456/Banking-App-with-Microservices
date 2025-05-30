@@ -63,8 +63,11 @@ type IdempotencyKey struct {
 
 var (
 	ErrInternalServer    error = status.Error(codes.Internal, "internal server error")
+	ErrInvalidArgument   error = status.Error(codes.InvalidArgument, "invalid argument")
 	ErrUserAlreadyExists error = status.Error(codes.AlreadyExists, "user already exists")
 	ErrInvalidJWT        error = status.Error(codes.InvalidArgument, "invalid JWT")
+	ErrNotAuthorized     error = status.Error(codes.Unauthenticated, "not authorized")
+	ErrNotAuthenticated  error = status.Error(codes.Unauthenticated, "not authenticated")
 )
 
 var (
