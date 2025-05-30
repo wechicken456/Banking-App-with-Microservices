@@ -1,5 +1,7 @@
 syntax = "proto3";
 
+package proto;
+
 import "buf/validate/validate.proto";
 
 option go_package = "./proto";
@@ -8,7 +10,7 @@ service AuthService {
   rpc CreateUser(CreateUserRequest) returns (CreateUserResponse) {}
   rpc DeleteUser(DeleteUserRequest) returns (DeleteUserResponse) {}
   rpc Login(LoginRequest) returns (LoginResponse) {}
-  rpc RenewToken(RenewTokenRequest) returns (RenewTokenResponse) {}
+  rpc RenewAccessToken(RenewAccessTokenRequest) returns (RenewAccessTokenResponse) {}
 }
 
 //message fingerprint_cookieCookie {
@@ -23,51 +25,48 @@ service AuthService {
 message CreateUserRequest {
   string email = 1 [(buf.validate.field).string.email = true];
   string password = 2 [(buf.validate.field).required = true];
-  bytes idempotency_key = 3;
+  string idempotency_key = 3;
 }
 
 message CreateUserResponse {
   int64 status = 1;
-  string error = 2;
-  bytes user_id = 3;
+  string user_id = 3;
 }
 
 message DeleteUserRequest {
   string email = 1 [(buf.validate.field).string.email = true];
   string jwt_token = 2 [(buf.validate.field).required = true];
   string fingerprint_cookie = 3 [(buf.validate.field).required = true];
-  bytes idempotency_key = 4;
+  string idempotency_key = 4;
 }
 
 message DeleteUserResponse {
   int64 status = 1;
-  string error = 2;
 }
 
 message LoginRequest {
   string email = 1 [(buf.validate.field).string.email = true];
   string password = 2 [(buf.validate.field).required = true];
-  bytes idempotency_key = 3;
+  string idempotency_key = 3;
 }
 
 message LoginResponse {
   int64 status = 1;
-  string error = 2;
-  bytes user_id = 3;
+  string user_id = 3;
   string refresh_token = 4;
   string jwt_token = 5;
   string fingerprint_cookie = 6;
 }
 
-message RenewTokenRequest {
+message RenewAccessTokenRequest {
+  string user_id = 4 [(buf.validate.field).string.uuid = true];
   string refresh_token = 1 [(buf.validate.field).required = true];
   string jwt_token = 2 [(buf.validate.field).required = true];
   string fingerprint_cookie = 3 [(buf.validate.field).required = true];
 }
 
-message RenewTokenResponse {
+message RenewAccessTokenResponse {
   int64 status = 1;
-  string error = 2;
   string refresh_token = 4;
   string jwt_token = 5;
   string fingerprint_cookie = 6;

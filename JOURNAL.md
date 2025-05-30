@@ -300,6 +300,23 @@ One way of solving this is by introducing a global event listener on localstorag
 
 
 
+# May 28 - Implement the service layer and gRPC proto and install buf.build for the `auth` microservice
+
+
+Use [protovalidate](https://buf.build/docs/protovalidate/quickstart/grpc-go/) to enforce rules on gRPC messages.
+
+[buf.yaml](./auth/buf.yaml) stores where to look for `.proto` input files, and the buf.build modules we need to generate code. 
+
+[buf.gen.yaml](./auth/buf.gen.yaml) stores the locations of output files. Use [managed mode](https://buf.build/docs/generate/managed-mode/#go) to override the default output "location pattern".
+
+
+# May 29 - Implement JWT validation at the API Gateway microservice.
+
+Installed the [chi]() library for http router.
+
+Implement JWT authentication middleware, and form parsing middleware with the following [considerations](https://www.alexedwards.net/blog/how-to-properly-parse-a-json-request-body).
+
+
 
 
 

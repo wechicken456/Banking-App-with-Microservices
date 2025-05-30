@@ -1,12 +1,6 @@
 version: v2
 managed:
   enabled: true
-  # This is crucial for keeping generated files in the same directory as the .proto source.
-  # It tells Buf to apply the 'go_package_prefix' strategy for all .proto files.
-  # Effectively, it makes the go_package option for generated files based on their relative path.
-  override:
-    - file_option: go_package_prefix
-      value: . # which typically results in generated files alongside the .proto source when combined
   disable:
     - file_option: go_package
       module: buf.build/bufbuild/protovalidate

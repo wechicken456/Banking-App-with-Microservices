@@ -1,11 +1,12 @@
 package model
 
 import (
-	"errors"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type User struct {
@@ -43,7 +44,7 @@ type TokenCookie struct {
 
 type LoginResult struct {
 	AccessToken          string
-	UserID               string
+	UserID               uuid.UUID
 	FingerprintAsCookie  string
 	RefreshTokenAsCookie string
 }
@@ -61,12 +62,15 @@ type IdempotencyKey struct {
 }
 
 var (
-	ErrInternalServer    error = errors.New("internal server error")
-	ErrUserAlreadyExists error = errors.New("user already exists")
+	ErrInternalServer    error = status.Error(codes.Internal, "internal server error")
+	ErrUserAlreadyExists error = status.Error(codes.AlreadyExists, "user already exists")
+	ErrInvalidJWT        error = status.Error(codes.InvalidArgument, "invalid JWT")
 )
 
 var (
-	TokenShortDuration    time.Duration = 15 * time.Minute
-	TokenAbsoluteDuration time.Duration = 4 * time.Hour
-	RefreshTokenDuration  time.Duration = 24 * time.Hour
+	TokenShortDuration     time.Duration = 15 * time.Minute
+	TokenAbsoluteDuration  time.Duration = 4 * time.Hour
+	RefreshTokenDuration   time.Duration = 24 * time.Hour
+	FingerprintCookieName  string        = "fingerprint"
+	RefreshTokenCookieName string        = "refresh_token"
 )

@@ -211,7 +211,7 @@ func (s *AuthService) LoginUser(ctx context.Context, user *model.User, idempoten
 
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
-		log.Printf("createUserTx: failed to beign transaction: %v", err)
+		log.Printf("LoginUser: failed to beign transaction: %v", err)
 		return nil, model.ErrInternalServer
 	}
 	defer tx.Rollback()
@@ -245,11 +245,11 @@ func (s *AuthService) LoginUser(ctx context.Context, user *model.User, idempoten
 	})
 	if err == nil {
 		if key.Status != "PENDING" { // "PENDING" implies that we (the current transaction) is the first one to create the idempotency key. Otherwise, we blocked while another transaction inserted the same key.
-			log.Printf("createUserTx: idempotency key already exists: %v\n", key)
+			log.Printf("LoginUser: idempotency key already exists: %v\n", key)
 			cachedTransaction := &model.LoginResult{}
 			err := json.Unmarshal([]byte(key.ResponseMessage), cachedTransaction)
 			if err != nil {
-				log.Printf("createTransactionTx: Failed to unmarshal transaction: %v\n", err)
+				log.Printf("LoginUser: Failed to unmarshal transaction: %v\n", err)
 				return nil, model.ErrInternalServer
 			}
 			return cachedTransaction, nil
@@ -278,7 +278,7 @@ func (s *AuthService) LoginUser(ctx context.Context, user *model.User, idempoten
 
 	ret := &model.LoginResult{
 		AccessToken:          accessToken.TokenString,
-		UserID:               user.UserID.String(),
+		UserID:               user.UserID,
 		FingerprintAsCookie:  accessToken.FingerprintCookieString,
 		RefreshTokenAsCookie: refreshToken.TokenAsCookie,
 	}
@@ -287,22 +287,94 @@ func (s *AuthService) LoginUser(ctx context.Context, user *model.User, idempoten
 	key.Status = "COMPLETED"
 	marshalled, err := json.Marshal(ret)
 	if err != nil {
-		log.Printf("createAccountTx: Failed to marshal transaction: %v\n", err)
+		log.Printf("LoginUser: Failed to marshal transaction: %v\n", err)
 		return nil, model.ErrInternalServer
 	}
 	key.ResponseMessage = string(marshalled)
 
 	if _, err = txRepo.UpdateIdempotencyKey(ctx, key); err != nil {
-		log.Printf("createAccountTx: Failed to create idempotency key: %v\n", err)
+		log.Printf("LoginUser: Failed to create idempotency key: %v\n", err)
 		return nil, model.ErrInternalServer
 	}
 
 	if err = tx.Commit(); err != nil {
-		log.Printf("createAccountTx: Failed to commit transaction: %v\n", err)
+		log.Printf("LoginUser: Failed to commit transaction: %v\n", err)
 		return nil, model.ErrInternalServer
 	}
 
 	return ret, nil
 }
 
-func (s *AuthService) RenewAccessToken(ctx context.Context)
+func (s *AuthService) RenewAccessToken(ctx context.Context, userID uuid.UUID, idempotencyKey string) (*model.LoginResult, error) {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		log.Printf("RenewAccessToken: failed to beign transaction: %v", err)
+		return nil, model.ErrInternalServer
+	}
+	defer tx.Rollback()
+
+	txRepo := s.repo.WithTx(tx)
+
+	user, err := txRepo.GetUserByID(ctx, userID)
+	if err != nil {
+		log.Printf("RenewAccessToken: failed to get user: %v", err)
+		return nil, model.ErrInternalServer
+	}
+
+	// check if this is a duplicate request. If so, we shouldn't genereate another refresh token
+	// Try to insert idempotency key with status "PENDING".
+	// the statement will block if another concurrent transactional already to inserts the same key, even if it hasn't committed yet.
+	key, err := txRepo.GetOrClaimIdempotencyKey(ctx, &model.IdempotencyKey{
+		KeyID:  idempotencyKey,
+		Status: "PENDING",
+	})
+	if err == nil {
+		if key.Status != "PENDING" { // "PENDING" implies that we (the current transaction) is the first one to create the idempotency key. Otherwise, we blocked while another transaction inserted the same key.
+			log.Printf("RenewAccessToken: idempotency key already exists: %v\n", key)
+			cachedTransaction := &model.LoginResult{}
+			err := json.Unmarshal([]byte(key.ResponseMessage), cachedTransaction)
+			if err != nil {
+				log.Printf("RenewAccessToken: Failed to unmarshal transaction: %v\n", err)
+				return nil, model.ErrInternalServer
+			}
+			return cachedTransaction, nil
+		}
+	} else {
+		log.Printf("RenewAccessToken: Failed to get idempotency key: %v\n", err)
+		return nil, model.ErrInternalServer
+	}
+
+	// generate a new access token
+	accessToken, err := utils.RandomAccessToken(user.UserID, JwtSecretKey)
+	if err != nil {
+		log.Printf("RenewAccessToken: %v", err)
+		return nil, model.ErrInternalServer
+	}
+
+	ret := &model.LoginResult{
+		AccessToken:         accessToken.TokenString,
+		UserID:              user.UserID,
+		FingerprintAsCookie: accessToken.FingerprintCookieString,
+	}
+
+	// Update the idempotency key status
+	key.Status = "COMPLETED"
+	marshalled, err := json.Marshal(ret)
+	if err != nil {
+		log.Printf("RenewAccessToken: Failed to marshal transaction: %v\n", err)
+		return nil, model.ErrInternalServer
+	}
+	key.ResponseMessage = string(marshalled)
+
+	if _, err = txRepo.UpdateIdempotencyKey(ctx, key); err != nil {
+		log.Printf("RenewAccessToken: Failed to create idempotency key: %v\n", err)
+		return nil, model.ErrInternalServer
+	}
+
+	if err = tx.Commit(); err != nil {
+		log.Printf("RenewAccessToken: Failed to commit transaction: %v\n", err)
+		return nil, model.ErrInternalServer
+	}
+
+	return ret, nil
+}
