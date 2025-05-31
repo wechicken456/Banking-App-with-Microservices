@@ -1,3 +1,13 @@
+// Service layer for the auth microservice. The auth microservice assuems that teh API Gateway has
+// already verified the client request JWT token. The verified JWT contains the user id of the request,
+// which the API Gateway will pass as gRPC message argument to the auth microservice. Hence, every single
+// request can only affect the user whose JWT was validated. So there's no need
+// to re-authenticate the request at this microservice, with the exception of the RenewAccessToken request.
+// Note that model.User will contain the UserID of a user.
+//
+// The RenewAccessToken request should compare the userID from the validated JWT against the userID of the
+// refresh_token. This ensures that a malicious renew request that carries a stolen JWT won't match the
+// attacker's userID in their refresh_token.
 package service
 
 import (
@@ -37,17 +47,6 @@ func NewAuthService(repo *repository.AuthRepository, db *sqlx.DB) *AuthService {
 }
 
 func (s *AuthService) CreateUser(ctx context.Context, user *model.User, idempotencyKey string) (*model.User, error) {
-	// For user creation, we might have different authorization rules
-	// For example, only admin users might be allowed to create other users
-	// This would require additional role-based checks
-
-	user.UserID = uuid.New()
-	passwordHash, err := utils.HashPassword(user.Password)
-	if err != nil {
-		return nil, model.ErrInternalServer
-	}
-	user.Password = passwordHash
-
 	createdUser, err := s.createUserTx(ctx, user, idempotencyKey)
 	if err != nil {
 		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code == pgerrcode.UniqueViolation {
@@ -130,31 +129,7 @@ func (s *AuthService) createUserTx(ctx context.Context, user *model.User, idempo
 	return user, nil
 }
 
-func (s *AuthService) GetUserByEmail(ctx context.Context, email string, requestingUserID uuid.UUID) (*model.User, error) {
-	// First get the user to check if the requesting user is authorized
-	user, err := s.repo.GetUserByEmail(ctx, email)
-	if err != nil {
-		return nil, model.ErrInternalServer
-	}
-
-	// Check ownership - only allow users to access their own information
-	if user.UserID != requestingUserID {
-		log.Printf("Unauthorized access attempt for user email %v by user %v\n",
-			email, requestingUserID)
-		return nil, model.ErrInternalServer
-	}
-
-	return user, nil
-}
-
-func (s *AuthService) UpdateUser(ctx context.Context, user *model.User, requestingUserID uuid.UUID) (*model.User, error) {
-	// Check ownership - only allow users to update their own information
-	if user.UserID != requestingUserID {
-		log.Printf("Unauthorized update attempt for user %v by user %v\n",
-			user.UserID, requestingUserID)
-		return nil, model.ErrInternalServer
-	}
-
+func (s *AuthService) UpdateUser(ctx context.Context, user *model.User) (*model.User, error) {
 	updatedUser, err := s.repo.UpdateUser(ctx, user)
 	if err != nil {
 		log.Printf("Failed to update user %v: %v\n", user.UserID, err)
@@ -163,15 +138,7 @@ func (s *AuthService) UpdateUser(ctx context.Context, user *model.User, requesti
 	return updatedUser, nil
 }
 
-func (s *AuthService) UpdateUserPassword(ctx context.Context, user *model.User, requestingUserID uuid.UUID, newPassword string) (*model.User, error) {
-	// Check ownership - only allow users to update their own password
-
-	if user.UserID != requestingUserID {
-		log.Printf("Unauthorized password update attempt for user %v by user %v\n",
-			user.UserID, requestingUserID)
-		return nil, model.ErrInternalServer
-	}
-
+func (s *AuthService) UpdateUserPassword(ctx context.Context, user *model.User, newPassword string) (*model.User, error) {
 	passwordHash, err := utils.HashPassword(newPassword)
 	if err != nil {
 		log.Printf("UpdateUserPassword: Failed to hash password for user %v: %v\n", user.UserID, err)
@@ -179,7 +146,7 @@ func (s *AuthService) UpdateUserPassword(ctx context.Context, user *model.User, 
 	}
 	user.Password = passwordHash
 
-	updatedUser, err := s.UpdateUser(ctx, user, requestingUserID)
+	updatedUser, err := s.UpdateUser(ctx, user)
 	if err != nil {
 		log.Printf("UpdateUserPassword: Failed to update password for user %v: %v\n", user.UserID, err)
 		return nil, model.ErrInternalServer
@@ -324,7 +291,7 @@ func (s *AuthService) RenewAccessToken(ctx context.Context, userID uuid.UUID, re
 	}
 
 	// check refresh_token expiration time
-	if time.Now().Before(token.ExpiredAt) {
+	if time.Now().After(token.ExpiredAt) {
 		return nil, model.ErrNotAuthenticated
 	}
 

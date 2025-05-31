@@ -7,9 +7,10 @@ Banking App written in **Golang** to learn about implementation of microservices
 **Current progress**: 
 
 1. Finished setting up PostgreSQL on **docker**.
-2. Implementing the `auth` service.
+2. Finsihed most features for account and auth microservices. Setting up gRPC for them.
+3. Testing JWT validation at the API gateway. 
 
-Check [JOURNAL.md](./JOURNAL.md) for my dev journal.
+Check [JOURNAL.md](./JOURNAL.md) for a more detailed journal on my progress.
 
 ---
 ## Microservices
