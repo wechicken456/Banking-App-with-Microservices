@@ -29,7 +29,7 @@ func (mr *malformedRequest) Error() string {
 // 2. prevent our server resources being wasted if a malcious client sends a very large request body,
 // 3. Disallow fields that are not present in the dst interface
 // 4. The request may contain multiple json objects, and the json.Decoder.Decode(&dst) will only parse the first object, so we need to return a http.StatusBadRequest if there are multiple JSON objects. We can only check this after we've parsed the body once.
-func decodeJSONBody(w http.ResponseWriter, r *http.Request, dst any) error {
+func DecodeJSONBody(w http.ResponseWriter, r *http.Request, dst any) error {
 	// check "Content-Type: application/json;"
 	contentType := r.Header.Get("Content-Type")
 	if contentType != "" {
@@ -89,51 +89,6 @@ func decodeJSONBody(w http.ResponseWriter, r *http.Request, dst any) error {
 	return nil
 }
 
-func LoginHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-	}
-
-	var loginCreds model.LoginCreds
-	if err := decodeJSONBody(w, r, &loginCreds); err != nil {
-		var mr *malformedRequest
-		if errors.As(err, &mr) {
-			http.Error(w, mr.msg, mr.status)
-		} else {
-			log.Print(err.Error())
-			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-		}
-		return
-	}
-
-	// get idempotency key from header
-	idempotencyKey := r.Header.Get("Idempotency-Key")
-
-	// TODO: use gRPC client to call the auth microservice here
-	w.Header().Set("Content-Type", "application/json")
-}
-
-func CreateUserHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-	}
-
-	var loginCreds model.LoginCreds
-	if err := decodeJSONBody(w, r, &loginCreds); err != nil {
-		var mr *malformedRequest
-		if errors.As(err, &mr) {
-			http.Error(w, mr.msg, mr.status)
-		} else {
-			log.Print(err.Error())
-			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-		}
-		return
-	}
-
-	// TODO: use gRPC client to call the auth microservice here
-	w.Header().Set("Content-Type", "application/json")
-}
-
 func CreateAccountHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -169,6 +124,6 @@ func RenewAccessTokenHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: use gRPC client to call the autah microservice here
+	// TODO: use gRPC client to call the auth microservice here
 	w.Header().Set("Content-Type", "application/json")
 }

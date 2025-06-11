@@ -12,6 +12,17 @@ type LoginCreds struct {
 	Password string `json:"password"`
 }
 
+type CreateUserResponse struct {
+	UserID string `json:"user_id"`
+}
+
+type LoginUserResponse struct {
+	UserID       string `json:"user_id"`
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
+	Fingerprint  string `json:"fingerprint"`
+}
+
 type Account struct{}
 
 var (

@@ -7,11 +7,11 @@ managed:
 
 plugins:
   - remote: buf.build/protocolbuffers/go
-    out: ./proto 
+    out: proto
     opt: paths=source_relative # IMPORTANT: This ensures generated files land next to their .proto source.
                                # For example, auth/proto/auth.proto -> auth/proto/auth.pb.go
   - remote: buf.build/grpc/go
-    out: ./proto 
+    out: proto
     opt: paths=source_relative # IMPORTANT: This ensures generated files land next to their .proto source.
                                # For example, auth/proto/auth.proto -> auth/proto/auth_grpc.pb.go
  

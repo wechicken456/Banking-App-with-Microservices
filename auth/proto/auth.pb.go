@@ -495,7 +495,7 @@ const file_auth_proto_rawDesc = "" +
 	"DeleteUser\x12\x18.proto.DeleteUserRequest\x1a\x19.proto.DeleteUserResponse\"\x00\x124\n" +
 	"\x05Login\x12\x13.proto.LoginRequest\x1a\x14.proto.LoginResponse\"\x00\x12U\n" +
 	"\x10RenewAccessToken\x12\x1e.proto.RenewAccessTokenRequest\x1a\x1f.proto.RenewAccessTokenResponse\"\x00BS\n" +
-	"\tcom.protoB\tAuthProtoP\x01Z\a./proto\xa2\x02\x03PXX\xaa\x02\x05Proto\xca\x02\x05Proto\xe2\x02\x11Proto\\GPBMetadata\xea\x02\x05Protob\x06proto3"
+	"\tcom.protoB\tAuthProtoP\x01Z\a.;proto\xa2\x02\x03PXX\xaa\x02\x05Proto\xca\x02\x05Proto\xe2\x02\x11Proto\\GPBMetadata\xea\x02\x05Protob\x06proto3"
 
 var (
 	file_auth_proto_rawDescOnce sync.Once

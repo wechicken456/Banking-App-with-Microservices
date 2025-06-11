@@ -1,8 +1,8 @@
 package handler
 
 import (
+	"api-gateway/client"
 	"api-gateway/initialize"
-	"api-gateway/proto"
 	"context"
 	"fmt"
 	"log"
@@ -15,19 +15,18 @@ import (
 
 var dotEnvFilename = ".env"
 
-func NewAccountServiceClient() proto.AccountServiceClient {
+func NewAccountServiceClient() client.AccountServiceClient {
 	initialize.LoadDotEnv(dotEnvFilename)
 
 	// Connect to the account service
 	connString := fmt.Sprintf("%s:%s", os.Getenv("ACCOUNT_SERVICE_HOST"), os.Getenv("ACCOUNT_SERVICE_PORT"))
 	fmt.Printf("Connecting to account service at %s\n", connString)
 	conn, err := grpc.NewClient(connString, grpc.WithTransportCredentials(insecure.NewCredentials()))
-
 	if err != nil {
 		log.Printf("Failed to connect to account service: %v", err)
 		return nil
 	}
-	client := proto.NewAccountServiceClient(conn)
+	client := client.NewAccountServiceClient(conn)
 	return client
 }
 
@@ -43,7 +42,7 @@ func CreateAccount(userID string, balance int64) {
 		return
 	}
 
-	req := &proto.CreateAccountRequest{
+	req := &client.CreateAccountRequest{
 		UserId:  userIDBytes[:],
 		Balance: balance,
 	}
@@ -56,7 +55,7 @@ func CreateAccount(userID string, balance int64) {
 	log.Printf("Account created: %v", res)
 }
 
-func GetAccountsByUserID(userID string) []*proto.Account {
+func GetAccountsByUserID(userID string) []*client.Account {
 	client := NewAccountServiceClient()
 	if client == nil {
 		log.Fatalf("Failed to create account service client")
@@ -68,7 +67,7 @@ func GetAccountsByUserID(userID string) []*proto.Account {
 		return nil
 	}
 
-	req := &proto.GetAccountsByUserIdRequest{
+	req := &client.GetAccountsByUserIdRequest{
 		UserId: userIDBytes[:],
 	}
 

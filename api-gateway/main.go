@@ -1,13 +1,18 @@
 package main
 
 import (
+	"api-gateway/client"
+	"api-gateway/initialize"
 	"log"
 	"net/http"
+	"os"
+	"strconv"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware" // Chi's built-in middleware
 
-	"api-gateway/handler"                 // my HTTP handlers
+	"api-gateway/handler" // my HTTP handlers
+
 	myMiddleware "api-gateway/middleware" // my custom AuthMiddleware
 )
 
@@ -19,6 +24,16 @@ func main() {
 	// }
 	// defer authConn.Close()
 	// authServiceClient := pb.NewAuthServiceClient(authConn)
+	//
+	//
+	initialize.LoadDotEnv()
+	_port, err := strconv.Atoi(os.Getenv("AUTH_SERVICE_PORT"))
+	if err != nil {
+		log.Printf("Invalid port for AUTH_SERVICE_PORT: %v", _port)
+		os.Exit(1)
+	}
+	authClient := client.NewAuthClient(os.Getenv("AUTH_SERVICE_URL"), _port)
+	authHandler := handler.NewAuthHandler(authClient)
 
 	r := chi.NewRouter()
 
@@ -29,8 +44,8 @@ func main() {
 	r.Use(middleware.URLFormat)
 
 	// --- Public Endpoints (do NOT require JWT validation) ---
-	r.Post("/login", handler.LoginHandler)
-	r.Post("/users", handler.CreateUserHandler) // Renamed from CreateUser for clarity
+	r.Post("/login", authHandler.LoginHandler)
+	r.Post("/register", authHandler.CreateUserHandler)
 	r.Post("/renew-token", handler.RenewAccessTokenHandler)
 
 	// --- Protected Endpoints (require JWT validation) ---
@@ -39,8 +54,8 @@ func main() {
 		r.Use(myMiddleware.AuthMiddleware) // JWT valdiation happens in this middleware
 
 		// TODO: add more routes to microservices
-		r.Delete("/delete-user", handler.DeleteUserHandler)
-		r.Get("/profile", handler.ProfileHandler)
+		r.Post("/create-user", authHandler.CreateUserHandler)
+		r.Delete("/delete-user", authHandler.DeleteUserHandler)
 	})
 
 	// Start the HTTP server

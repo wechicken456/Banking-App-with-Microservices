@@ -4,7 +4,7 @@ package proto;
 
 import "buf/validate/validate.proto";
 
-option go_package = "./proto";
+option go_package = ".;proto/";
 
 service AuthService {
   rpc CreateUser(CreateUserRequest) returns (CreateUserResponse) {}

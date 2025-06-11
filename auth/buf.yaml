@@ -1,6 +1,7 @@
 version: v2
 modules:
   - path: proto
+    name: buf.build/banking-app/auth
 deps:
   - buf.build/bufbuild/protovalidate
 lint:

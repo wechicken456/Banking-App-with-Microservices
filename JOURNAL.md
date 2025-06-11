@@ -294,7 +294,7 @@ But isn't having `refresh_tokens`` the same as a traditionally stateful session?
     - However, with JWTs, *any* microservice can validate the JWT. Hence, the only "state" that we need to query from the `auth` service is during *revalidating/refreshing* an access token. 
 
 ## So we use *sessionStorage*. What will happen if I am logged in on different tabs?
-One way of solving this is by introducing a global event listener on localstorage. Whenever we update this logout key in localstorage on one tab, the listener will fire on the other tabs and trigger a "logout" too and redirect users to the login screen.
+One way of solving this is by introducing a global event listener on localStorage. Whenever we remove this logout key in localStorage on one tab, the listener will fire on the other tabs and trigger a "logout" too and redirect users to the login screen.
 
 
 

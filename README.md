@@ -10,7 +10,7 @@ Banking App written in **Golang** to learn about implementation of microservices
 2. Finsihed most features for account and auth microservices. Setting up gRPC for them.
 3. Testing JWT validation at the API gateway. 
 
-Check [JOURNAL.md](./JOURNAL.md) for a more detailed journal on my progress.
+Check [JOURNAL.md](./JOURNAL.md) for a more detailed 
 
 ---
 ## Microservices
@@ -52,7 +52,7 @@ Check [JOURNAL.md](./JOURNAL.md) for a more detailed journal on my progress.
 
 ---
 
-## 🗂️ Project Directory Structure
+## Project Directory Structure
 
 ```text
 banking-microservices/
