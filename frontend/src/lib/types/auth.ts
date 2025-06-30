@@ -8,15 +8,23 @@ export interface LoginCredentials {
     password: string;
 }
 
-export interface RegisterCredentials extends LoginCredentials {
-    confirmPassword: string;
+export interface AuthTokens {
+    accessToken: string;
+    refreshToken: string;
 }
 
 export interface LoginResponse {
-    accessToken: string;
+    userId: string;
+    email: string;
+    accessToken: string; 
     refreshToken: string;
-    fingerprint: string;
-    user: User;
+    fingerprint: string; 
+    accessTokenDuration: number; // in seconds
+    refreshTokenDuration: number; // in seconds
+}
+
+export interface RenewAccessTokenResponse {
+    accessToken: string;
 }
 
 export interface ApiError {

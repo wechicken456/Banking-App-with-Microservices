@@ -25,17 +25,13 @@ import (
 	"github.com/jackc/pgerrcode"
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type AuthService struct {
 	repo *repository.AuthRepository
 	db   *sqlx.DB
 }
-
-var (
-	JwtSecretKey string
-	JwtPublicKey string
-)
 
 // r and db should be created in the main function and passed to the service
 // sqlx.DB object maintains a connection pool internally, and will attempt to connect when a connection is first needed.
@@ -69,7 +65,7 @@ func (s *AuthService) createUserTx(ctx context.Context, user *model.User, idempo
 	txRepo := s.repo.WithTx(tx)
 
 	// check if user already exists
-	user, err = txRepo.GetUserByEmail(ctx, user.Email)
+	_, err = txRepo.GetUserByEmail(ctx, user.Email)
 	if err == nil {
 		return user, errors.New("user already exists")
 	}
@@ -102,6 +98,7 @@ func (s *AuthService) createUserTx(ctx context.Context, user *model.User, idempo
 		return nil, model.ErrInternalServer
 	}
 	user.Password = passwordHash
+	user.UserID = uuid.New()
 	user, err = txRepo.CreateUser(ctx, user)
 	if err != nil {
 		return nil, model.ErrInternalServer
@@ -154,7 +151,11 @@ func (s *AuthService) UpdateUserPassword(ctx context.Context, user *model.User, 
 	return updatedUser, nil
 }
 
-func (s *AuthService) DeleteUser(ctx context.Context, userID uuid.UUID) error {
+func (s *AuthService) DeleteUser(ctx context.Context, userID uuid.UUID, targetUserID uuid.UUID) error {
+	if userID != targetUserID {
+		log.Printf("DeleteUser: blocked user %v from deleting user %v", userID, targetUserID)
+		return model.ErrNotAuthorized
+	}
 	err := s.repo.DeleteUser(ctx, userID)
 	if err != nil {
 		log.Printf("DeleteUser: Failed to delete user %v: %v\n", userID, err)
@@ -163,37 +164,33 @@ func (s *AuthService) DeleteUser(ctx context.Context, userID uuid.UUID) error {
 	return nil
 }
 
-func (s *AuthService) LoginUser(ctx context.Context, user *model.User, idempotencyKey string) (*model.LoginResult, error) {
-	hashedPwd, err := utils.HashPassword(user.Password)
-	if err != nil {
-		log.Printf("LoginUser: failed to hash password: %v", err)
-		return nil, model.ErrInternalServer
-	}
+func (s *AuthService) Login(ctx context.Context, user *model.User, idempotencyKey string) (*model.LoginResult, error) {
 
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
-		log.Printf("LoginUser: failed to beign transaction: %v", err)
+		log.Printf("Login: failed to beign transaction: %v", err)
 		return nil, model.ErrInternalServer
 	}
 	defer tx.Rollback()
 
 	txRepo := s.repo.WithTx(tx)
 
+	password := user.Password
 	user, err = txRepo.GetUserByEmail(ctx, user.Email)
 	if err != nil {
-		log.Printf("LoginUser: failed to get user: %v", err)
-		return nil, model.ErrInternalServer
+		log.Printf("Login: failed to get user: %v", err)
+		return nil, model.ErrNotAuthenticated
 	}
 
 	// user variable has been overwritten by the value fetched from db, so the field Password should contain the stored hash
-	if hashedPwd != user.Password {
-		log.Printf("LoginUser: password hash mismatch for user %v", user.Email)
-		return nil, model.ErrInternalServer
+	if bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
+		log.Printf("Login: password hash mismatch for user %v: %v", user.Email, err)
+		return nil, model.ErrNotAuthenticated
 	}
 
-	accessToken, err := utils.RandomAccessToken(user.UserID, JwtSecretKey)
+	accessToken, err := utils.RandomAccessToken(user.UserID)
 	if err != nil {
-		log.Printf("LoginUser: %v", err)
+		log.Printf("Login: %v", err)
 		return nil, model.ErrInternalServer
 	}
 
@@ -206,60 +203,62 @@ func (s *AuthService) LoginUser(ctx context.Context, user *model.User, idempoten
 	})
 	if err == nil {
 		if key.Status != "PENDING" { // "PENDING" implies that we (the current transaction) is the first one to create the idempotency key. Otherwise, we blocked while another transaction inserted the same key.
-			log.Printf("LoginUser: idempotency key already exists: %v\n", key)
+			log.Printf("Login: idempotency key already exists: %v\n", key)
 			cachedTransaction := &model.LoginResult{}
 			err := json.Unmarshal([]byte(key.ResponseMessage), cachedTransaction)
 			if err != nil {
-				log.Printf("LoginUser: Failed to unmarshal transaction: %v\n", err)
+				log.Printf("Login: Failed to unmarshal transaction: %v\n", err)
 				return nil, model.ErrInternalServer
 			}
 			return cachedTransaction, nil
 		}
 	} else {
-		log.Printf("LoginUser: Failed to get idempotency key: %v\n", err)
+		log.Printf("Login: Failed to get idempotency key: %v\n", err)
 		return nil, model.ErrInternalServer
 	}
 
 	refreshToken, err := utils.RandomRefreshToken()
 	if err != nil {
-		log.Printf("LoginUser: %v", err)
+		log.Printf("Login: %v", err)
 		return nil, model.ErrInternalServer
 	}
 
 	// Store refresh token in db
 	_, err = s.repo.CreateRefreshToken(ctx, &model.RefreshTokenRepo{
 		UserID:    user.UserID,
-		TokenHash: refreshToken.TokenHash,
-		ExpiredAt: time.Now().Add(model.RefreshTokenDuration),
+		Token:     refreshToken.Token,
+		ExpiredAt: time.Now().Add(time.Duration(refreshToken.Duration)),
 	})
 	if err != nil {
-		log.Printf("LoginUser: failed to store refresh token in db: %v", err)
+		log.Printf("Login: failed to store refresh token in db: %v", err)
 		return nil, model.ErrInternalServer
 	}
 
 	ret := &model.LoginResult{
-		AccessToken:          accessToken.TokenString,
+		AccessToken:          accessToken.Token,
 		UserID:               user.UserID,
-		FingerprintAsCookie:  accessToken.FingerprintCookieString,
-		RefreshTokenAsCookie: refreshToken.TokenAsCookie,
+		Fingerprint:          accessToken.Fingerprint,
+		RefreshToken:         refreshToken.Token,
+		AccessTokenDuration:  accessToken.Duration,
+		RefreshTokenDuration: refreshToken.Duration,
 	}
 
 	// Update the idempotency key status
 	key.Status = "COMPLETED"
 	marshalled, err := json.Marshal(ret)
 	if err != nil {
-		log.Printf("LoginUser: Failed to marshal transaction: %v\n", err)
+		log.Printf("Login: Failed to marshal transaction: %v\n", err)
 		return nil, model.ErrInternalServer
 	}
 	key.ResponseMessage = string(marshalled)
 
 	if _, err = txRepo.UpdateIdempotencyKey(ctx, key); err != nil {
-		log.Printf("LoginUser: Failed to create idempotency key: %v\n", err)
+		log.Printf("Login: Failed to create idempotency key: %v\n", err)
 		return nil, model.ErrInternalServer
 	}
 
 	if err = tx.Commit(); err != nil {
-		log.Printf("LoginUser: Failed to commit transaction: %v\n", err)
+		log.Printf("Login: Failed to commit transaction: %v\n", err)
 		return nil, model.ErrInternalServer
 	}
 
@@ -272,7 +271,7 @@ func (s *AuthService) RenewAccessToken(ctx context.Context, userID uuid.UUID, re
 	if err != nil {
 		log.Printf("RenewAccessToken: %v", err)
 		if err == sql.ErrNoRows {
-			return nil, model.ErrInvalidJWT // TODO: change error type
+			return nil, model.ErrNotAuthorized
 		}
 		return nil, model.ErrInternalServer
 	}
@@ -314,7 +313,7 @@ func (s *AuthService) RenewAccessToken(ctx context.Context, userID uuid.UUID, re
 	})
 	if err == nil {
 		if key.Status != "PENDING" { // "PENDING" implies that we (the current transaction) is the first one to create the idempotency key. Otherwise, we blocked while another transaction inserted the same key.
-			log.Printf("RenewAccessToken: idempotency key already exists: %v\n", key)
+			log.Printf("RenewAccessToken: idempotency key already eagexists: %v\n", key)
 			cachedTransaction := &model.AccessToken{}
 			err := json.Unmarshal([]byte(key.ResponseMessage), cachedTransaction)
 			if err != nil {
@@ -329,20 +328,14 @@ func (s *AuthService) RenewAccessToken(ctx context.Context, userID uuid.UUID, re
 	}
 
 	// generate a new access token
-	accessToken, err := utils.RandomAccessToken(user.UserID, JwtSecretKey)
+	accessToken, err := utils.RandomAccessToken(user.UserID)
 	if err != nil {
 		log.Printf("RenewAccessToken: %v", err)
 		return nil, model.ErrInternalServer
 	}
-
-	ret := &model.AccessToken{
-		TokenString:             accessToken.TokenString,
-		FingerprintCookieString: accessToken.FingerprintCookieString,
-	}
-
 	// Update the idempotency key status
 	key.Status = "COMPLETED"
-	marshalled, err := json.Marshal(ret)
+	marshalled, err := json.Marshal(accessToken)
 	if err != nil {
 		log.Printf("RenewAccessToken: Failed to marshal transaction: %v\n", err)
 		return nil, model.ErrInternalServer
@@ -359,5 +352,5 @@ func (s *AuthService) RenewAccessToken(ctx context.Context, userID uuid.UUID, re
 		return nil, model.ErrInternalServer
 	}
 
-	return ret, nil
+	return accessToken, nil
 }

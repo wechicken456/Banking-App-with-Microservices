@@ -10,13 +10,13 @@ import (
 	"log"
 	"net"
 	"os"
+	"strconv"
 
 	_ "github.com/lib/pq"
 	"google.golang.org/grpc"
 )
 
 func main() {
-	initialize.LoadDotEnv()
 	db := initialize.ConnectDB()
 	defer db.Close()
 	accountRepo := repository.NewAccountRepository(db)
@@ -32,8 +32,15 @@ func main() {
 		log.Fatalf("Failed to create account handler")
 	}
 
+	_port := os.Getenv("GRPC_PORT")
+	var port int
+	var err error
+	if port, err = strconv.Atoi(_port); err != nil {
+		port = 50002
+	}
+
 	// start the server
-	listener, err := net.Listen("tcp", fmt.Sprintf(":%s", os.Getenv("ACCOUNT_PORT")))
+	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {
 		log.Fatalf("Failed to start server: %v", err)
 	}
@@ -41,7 +48,7 @@ func main() {
 
 	grpcServer := grpc.NewServer()
 	proto.RegisterAccountServiceServer(grpcServer, accountHandler)
-	fmt.Printf("Server started on port %s\n", os.Getenv("ACCOUNT_PORT"))
+	fmt.Printf("Server started on port %d\n", port)
 	if grpcServer.Serve(listener); err != nil {
 		log.Fatalf("Failed to serve: %v", err)
 	}

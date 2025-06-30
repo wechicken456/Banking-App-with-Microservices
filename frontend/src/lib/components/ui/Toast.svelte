@@ -53,7 +53,7 @@
     }
 
     .toast {
-        @apply max-w-sm w-full bg-white shadow-lg rounded-lg pointer-events-auto ring-1 ring-black/5 overflow-hidden transform transition-all duration-300 ease-in-out;
+        @apply min-w-80 max-w-md w-auto bg-white shadow-lg rounded-lg pointer-events-auto ring-1 ring-black/5 overflow-hidden transform transition-all duration-300 ease-in-out;
     }
 
     .toast-content {

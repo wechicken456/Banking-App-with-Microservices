@@ -1,10 +1,14 @@
 package model
 
-import "github.com/golang-jwt/jwt/v5"
+import (
+	"time"
+
+	"github.com/golang-jwt/jwt/v5"
+)
 
 type JWTClaim struct {
 	jwt.RegisteredClaims
-	FingerprintHash string `json:"fp_hash"`
+	FingerprintHash string `json:"fpHash"`
 }
 
 type LoginCreds struct {
@@ -13,20 +17,32 @@ type LoginCreds struct {
 }
 
 type CreateUserResponse struct {
-	UserID string `json:"user_id"`
+	UserID string `json:"userId"`
 }
 
-type LoginUserResponse struct {
-	UserID       string `json:"user_id"`
-	AccessToken  string `json:"access_token"`
-	RefreshToken string `json:"refresh_token"`
-	Fingerprint  string `json:"fingerprint"`
+type LoginResponse struct {
+	UserID               string `json:"userId"`
+	Email                string `json:"email"`
+	AccessToken          string `json:"accessToken"`
+	Fingerprint          string `json:"fingerprint"`
+	RefreshToken         string `json:"refreshToken"`
+	AccessTokenDuration  int32  `json:"accessTokenDuration"`
+	RefreshTokenDuration int32  `json:"refreshTokenDuration"`
+}
+
+type RenewAccessTokenResponse struct {
+	AccessToken         string `json:"accessToken"`
+	Fingerprint         string `json:"fingerprint"`
+	AccessTokenDuration int32  `json:"accessTokenDuration"`
 }
 
 type Account struct{}
 
 var (
-	FingerprintCookieName  string = "fingerprint"
-	RefreshTokenCookieName string = "refresh_token"
-	AccessTokenCookieName  string = "access_token"
+	TokenShortDuration     time.Duration = 15 * time.Minute
+	TokenAbsoluteDuration  time.Duration = 4 * time.Hour
+	RefreshTokenDuration   time.Duration = 24 * time.Hour
+	FingerprintCookieName  string        = "fingerprint"
+	AccessTokenCookieName  string        = "accessToken"
+	RefreshTokenCookieName string        = "refreshToken"
 )

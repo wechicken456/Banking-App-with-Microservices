@@ -1,9 +1,12 @@
 import { browser } from '$app/environment';
 import { goto } from '$app/navigation';
-import type { User } from '$lib/types/auth';
+import type { User, AuthTokens} from '$lib/types/auth';
 import { api } from '$lib/services/api';
 
 class AuthStore {
+    private readonly ACCESS_TOKEN_KEY = 'accessToken';
+    private readonly REFRESH_TOKEN_KEY = 'refreshToken';
+    private readonly FINGERPRINT_KEY = 'fingerprint';
     user = $state<User | null>(null);
     isLoading = $state(false);
     isAuthenticated = $derived(this.user !== null);
@@ -14,8 +17,44 @@ class AuthStore {
         }
     }
 
-    private async checkAuth() {
-        const accessToken = sessionStorage.get('access_token');
+    private getAccessToken(): string | null {
+        if (typeof window === 'undefined') return null;
+        return sessionStorage.getItem(this.ACCESS_TOKEN_KEY);
+    }
+
+    private getFingerprint(): string | null {
+        if (typeof window === 'undefined') return null;
+        return sessionStorage.getItem(this.FINGERPRINT_KEY);
+    }
+
+    private getRefreshToken(): string | null {
+        if (typeof window === 'undefined') return null;
+        return sessionStorage.getItem(this.REFRESH_TOKEN_KEY);
+    }
+
+    private setAccessToken(token: string): void {
+        if (typeof window === 'undefined') return;
+        sessionStorage.setItem(this.ACCESS_TOKEN_KEY, token);
+    }
+
+    private setFingerprint(fingerprint: string): void {
+        if (typeof window === 'undefined') return;
+        sessionStorage.setItem(this.FINGERPRINT_KEY, fingerprint);
+    }
+
+    private setRefreshToken(token: string): void {
+        if (typeof window === 'undefined') return;
+        sessionStorage.setItem(this.REFRESH_TOKEN_KEY, token);
+    }
+
+    private removeAccessToken(): void {
+        if (typeof window === 'undefined') return;
+        sessionStorage.removeItem(this.ACCESS_TOKEN_KEY);
+    }
+
+
+    async checkAuth() {
+        const accessToken = this.getAccessToken();
         if (!accessToken) {
             this.user = null;
             return;
@@ -34,14 +73,34 @@ class AuthStore {
         }
     }
 
+    private getTokens() : AuthTokens | null {
+        const accessToken = this.getAccessToken();
+        if (!accessToken) {
+            console.warn('No access token found, cannot renew');
+            return null;
+        }
+        const refreshToken = this.getRefreshToken();
+        if (!refreshToken) {
+            console.warn('No refresh token found, cannot renew');
+            return null;
+        }
+        return {
+            accessToken,
+            refreshToken,
+        };
+    }
+
     async login(email: string, password: string) {
         try {
             this.isLoading = true;
             const response = await api.login({ email, password });
+            console.log('Login response:', response);
+
+            this.setAccessToken(response.accessToken);
+            this.setRefreshToken(response.refreshToken);
+            this.setFingerprint(response.fingerprint);
             
-            // Cookies are set by the server via Set-Cookie headers
-            // We just need to set the user data
-            this.user = response.user;
+            this.user = {id: response.userId, email: response.email};
 
             goto('/dashboard');
             return { success: true };
@@ -63,7 +122,7 @@ class AuthStore {
 
         try {
             this.isLoading = true;
-            await api.register({ email, password, confirmPassword });
+            await api.register({ email, password});
             return { success: true };
         } catch (error) {
             console.error('Registration failed:', error);
@@ -88,25 +147,29 @@ class AuthStore {
         }
     }
 
-    private clearTokens() {
-        if (browser) {
-            sessionStorage.remove('access_token');
-            sessionStorage.remove('refresh_token');
-            sessionStorage.remove('fingerprint');
-
-            // TODO: clear cookies across tabs
-        }
-    }
-
     async renewToken() {
         try {
-            await api.renewToken();
+            const tokens = this.getTokens();
+            if (tokens === null) {
+                console.warn('One of access token, refresh token, or fingerprint is missing, cannot renew');
+                return false;    
+            }
+            await api.renewToken(tokens);
             // Token is renewed via cookies, no need to handle response
             return true;
         } catch (error) {
             console.error('Token renewal failed:', error);
             this.logout();
             return false;
+        }
+    }
+
+    public clearTokens() {
+        if (browser) {
+            sessionStorage.removeItem(this.ACCESS_TOKEN_KEY);
+            sessionStorage.removeItem(this.REFRESH_TOKEN_KEY);
+            sessionStorage.removeItem(this.FINGERPRINT_KEY);
+            // TODO: clear cookies across tabs
         }
     }
 }

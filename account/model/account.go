@@ -1,9 +1,9 @@
 package model
 
 import (
-	"errors"
-
 	"github.com/google/uuid"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type User struct {
@@ -36,7 +36,9 @@ type IdempotencyKey struct {
 }
 
 var (
-	ErrInternalServer       error = errors.New("internal server error")
-	ErrIdempotencyKeyExists error = errors.New("idempotency key already exists")
-	ErrUserIDMismatch       error = errors.New("user id mismatch")
+	ErrInternalServer    error = status.Error(codes.Internal, "internal server error")
+	ErrInvalidArgument   error = status.Error(codes.InvalidArgument, "invalid argument")
+	ErrUserAlreadyExists error = status.Error(codes.AlreadyExists, "user already exists")
+	ErrNotAuthorized     error = status.Error(codes.Unauthenticated, "not authorized")
+	ErrNotAuthenticated  error = status.Error(codes.Unauthenticated, "not authenticated")
 )

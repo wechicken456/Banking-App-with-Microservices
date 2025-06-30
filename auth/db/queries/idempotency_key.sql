@@ -36,7 +36,7 @@ VALUES (
     NOW(),
     NOW() + interval '24 hours'
 )
-ON CONFLICT (key_id, user_id)
+ON CONFLICT (key_id)
 DO UPDATE SET
     -- Only touch 'updated_at' if the existing status is 'PENDING', to signify this transaction is actively looking at it.
     -- If it's already 'COMPLETED' or 'FAILED', we don't want to modify it here; RETURNING * will give us its state.

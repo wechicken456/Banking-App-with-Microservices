@@ -126,10 +126,12 @@ func (x *CreateUserResponse) GetUserId() string {
 	return ""
 }
 
-// user_id is the ID of the user to delete. Should match ID associated with the JWT token of the request validated at the API Gateway.
+// user_id is the ID of the user associated with the JWT token of the request validated at the API Gateway.
+// target_user_id is the ID of the user to delte.
 type DeleteUserRequest struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
 	UserId         string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	TargetUserId   string                 `protobuf:"bytes,2,opt,name=target_user_id,json=targetUserId,proto3" json:"target_user_id,omitempty"`
 	IdempotencyKey string                 `protobuf:"bytes,4,opt,name=idempotency_key,json=idempotencyKey,proto3" json:"idempotency_key,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
@@ -168,6 +170,13 @@ func (*DeleteUserRequest) Descriptor() ([]byte, []int) {
 func (x *DeleteUserRequest) GetUserId() string {
 	if x != nil {
 		return x.UserId
+	}
+	return ""
+}
+
+func (x *DeleteUserRequest) GetTargetUserId() string {
+	if x != nil {
+		return x.TargetUserId
 	}
 	return ""
 }
@@ -276,13 +285,15 @@ func (x *LoginRequest) GetIdempotencyKey() string {
 }
 
 type LoginResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	UserId        string                 `protobuf:"bytes,3,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	RefreshToken  string                 `protobuf:"bytes,4,opt,name=refresh_token,json=refreshToken,proto3" json:"refresh_token,omitempty"`
-	AccessToken   string                 `protobuf:"bytes,5,opt,name=access_token,json=accessToken,proto3" json:"access_token,omitempty"`
-	Fingerprint   string                 `protobuf:"bytes,6,opt,name=fingerprint,proto3" json:"fingerprint,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                protoimpl.MessageState `protogen:"open.v1"`
+	UserId               string                 `protobuf:"bytes,3,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	RefreshToken         string                 `protobuf:"bytes,4,opt,name=refresh_token,json=refreshToken,proto3" json:"refresh_token,omitempty"`
+	AccessToken          string                 `protobuf:"bytes,5,opt,name=access_token,json=accessToken,proto3" json:"access_token,omitempty"`
+	Fingerprint          string                 `protobuf:"bytes,6,opt,name=fingerprint,proto3" json:"fingerprint,omitempty"`
+	AccessTokenDuration  int32                  `protobuf:"varint,1,opt,name=access_token_duration,json=accessTokenDuration,proto3" json:"access_token_duration,omitempty"`
+	RefreshTokenDuration int32                  `protobuf:"varint,2,opt,name=refresh_token_duration,json=refreshTokenDuration,proto3" json:"refresh_token_duration,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
 }
 
 func (x *LoginResponse) Reset() {
@@ -341,6 +352,20 @@ func (x *LoginResponse) GetFingerprint() string {
 		return x.Fingerprint
 	}
 	return ""
+}
+
+func (x *LoginResponse) GetAccessTokenDuration() int32 {
+	if x != nil {
+		return x.AccessTokenDuration
+	}
+	return 0
+}
+
+func (x *LoginResponse) GetRefreshTokenDuration() int32 {
+	if x != nil {
+		return x.RefreshTokenDuration
+	}
+	return 0
 }
 
 // user_id is most of the time the ID associated with the JWT token of the request validated at the API Gateway.
@@ -405,11 +430,12 @@ func (x *RenewAccessTokenRequest) GetIdempotencyKey() string {
 }
 
 type RenewAccessTokenResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	AccessToken   string                 `protobuf:"bytes,4,opt,name=access_token,json=accessToken,proto3" json:"access_token,omitempty"`
-	Fingerprint   string                 `protobuf:"bytes,2,opt,name=fingerprint,proto3" json:"fingerprint,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state               protoimpl.MessageState `protogen:"open.v1"`
+	AccessToken         string                 `protobuf:"bytes,4,opt,name=access_token,json=accessToken,proto3" json:"access_token,omitempty"`
+	Fingerprint         string                 `protobuf:"bytes,2,opt,name=fingerprint,proto3" json:"fingerprint,omitempty"`
+	AccessTokenDuration int32                  `protobuf:"varint,1,opt,name=access_token_duration,json=accessTokenDuration,proto3" json:"access_token_duration,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *RenewAccessTokenResponse) Reset() {
@@ -456,6 +482,13 @@ func (x *RenewAccessTokenResponse) GetFingerprint() string {
 	return ""
 }
 
+func (x *RenewAccessTokenResponse) GetAccessTokenDuration() int32 {
+	if x != nil {
+		return x.AccessTokenDuration
+	}
+	return 0
+}
+
 var File_auth_proto protoreflect.FileDescriptor
 
 const file_auth_proto_rawDesc = "" +
@@ -467,27 +500,31 @@ const file_auth_proto_rawDesc = "" +
 	"\bpassword\x18\x02 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\bpassword\x121\n" +
 	"\x0fidempotency_key\x18\x03 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x0eidempotencyKey\"-\n" +
 	"\x12CreateUserResponse\x12\x17\n" +
-	"\auser_id\x18\x03 \x01(\tR\x06userId\"i\n" +
+	"\auser_id\x18\x03 \x01(\tR\x06userId\"\x99\x01\n" +
 	"\x11DeleteUserRequest\x12!\n" +
-	"\auser_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x06userId\x121\n" +
+	"\auser_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x06userId\x12.\n" +
+	"\x0etarget_user_id\x18\x02 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\ftargetUserId\x121\n" +
 	"\x0fidempotency_key\x18\x04 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x0eidempotencyKey\"\x14\n" +
 	"\x12DeleteUserResponse\"\x84\x01\n" +
 	"\fLoginRequest\x12\x1d\n" +
 	"\x05email\x18\x01 \x01(\tB\a\xbaH\x04r\x02`\x01R\x05email\x12\"\n" +
 	"\bpassword\x18\x02 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\bpassword\x121\n" +
-	"\x0fidempotency_key\x18\x03 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x0eidempotencyKey\"\x92\x01\n" +
+	"\x0fidempotency_key\x18\x03 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x0eidempotencyKey\"\xfc\x01\n" +
 	"\rLoginResponse\x12\x17\n" +
 	"\auser_id\x18\x03 \x01(\tR\x06userId\x12#\n" +
 	"\rrefresh_token\x18\x04 \x01(\tR\frefreshToken\x12!\n" +
 	"\faccess_token\x18\x05 \x01(\tR\vaccessToken\x12 \n" +
-	"\vfingerprint\x18\x06 \x01(\tR\vfingerprint\"\x9c\x01\n" +
+	"\vfingerprint\x18\x06 \x01(\tR\vfingerprint\x122\n" +
+	"\x15access_token_duration\x18\x01 \x01(\x05R\x13accessTokenDuration\x124\n" +
+	"\x16refresh_token_duration\x18\x02 \x01(\x05R\x14refreshTokenDuration\"\x9c\x01\n" +
 	"\x17RenewAccessTokenRequest\x12!\n" +
 	"\auser_id\x18\x04 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x06userId\x12+\n" +
 	"\rrefresh_token\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\frefreshToken\x121\n" +
-	"\x0fidempotency_key\x18\x03 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x0eidempotencyKey\"_\n" +
+	"\x0fidempotency_key\x18\x03 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x0eidempotencyKey\"\x93\x01\n" +
 	"\x18RenewAccessTokenResponse\x12!\n" +
 	"\faccess_token\x18\x04 \x01(\tR\vaccessToken\x12 \n" +
-	"\vfingerprint\x18\x02 \x01(\tR\vfingerprint2\xa4\x02\n" +
+	"\vfingerprint\x18\x02 \x01(\tR\vfingerprint\x122\n" +
+	"\x15access_token_duration\x18\x01 \x01(\x05R\x13accessTokenDuration2\xa4\x02\n" +
 	"\vAuthService\x12C\n" +
 	"\n" +
 	"CreateUser\x12\x18.proto.CreateUserRequest\x1a\x19.proto.CreateUserResponse\"\x00\x12C\n" +

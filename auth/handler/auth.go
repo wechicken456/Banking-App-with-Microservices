@@ -39,24 +39,30 @@ func (h *AuthHandler) DeleteUser(ctx context.Context, req *proto.DeleteUserReque
 	if err != nil {
 		return &proto.DeleteUserResponse{}, err
 	}
-	err = h.service.DeleteUser(ctx, userID)
+	targetUserID, err := uuid.Parse(req.TargetUserId)
+	if err != nil {
+		return &proto.DeleteUserResponse{}, err
+	}
+	err = h.service.DeleteUser(ctx, userID, targetUserID)
 	return &proto.DeleteUserResponse{}, err
 }
 
-func (h *AuthHandler) LoginUser(ctx context.Context, req *proto.LoginRequest) (*proto.LoginResponse, error) {
+func (h *AuthHandler) Login(ctx context.Context, req *proto.LoginRequest) (*proto.LoginResponse, error) {
 	user := &model.User{
 		Email:    req.Email,
 		Password: req.Password,
 	}
-	res, err := h.service.LoginUser(ctx, user, req.IdempotencyKey)
+	res, err := h.service.Login(ctx, user, req.IdempotencyKey)
 	if err != nil {
 		return nil, err
 	}
 	return &proto.LoginResponse{
-		UserId:       res.UserID.String(),
-		AccessToken:  res.AccessToken,
-		RefreshToken: res.RefreshTokenAsCookie,
-		Fingerprint:  res.FingerprintAsCookie,
+		UserId:               res.UserID.String(),
+		AccessToken:          res.AccessToken,
+		RefreshToken:         res.RefreshToken,
+		Fingerprint:          res.Fingerprint,
+		AccessTokenDuration:  int32(res.AccessTokenDuration),
+		RefreshTokenDuration: int32(res.RefreshTokenDuration),
 	}, nil
 }
 
@@ -72,7 +78,8 @@ func (h *AuthHandler) RenewAccessToken(ctx context.Context, req *proto.RenewAcce
 	}
 
 	return &proto.RenewAccessTokenResponse{
-		AccessToken: res.TokenString,
-		Fingerprint: res.FingerprintCookieString,
+		AccessToken:         res.Token,
+		Fingerprint:         res.Fingerprint,
+		AccessTokenDuration: int32(res.Duration),
 	}, nil
 }

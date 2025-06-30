@@ -12,7 +12,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
-	"github.com/joho/godotenv"
 	"github.com/stretchr/testify/require"
 )
 
@@ -21,10 +20,6 @@ var service *AccountService = nil
 
 // main will run before all tests
 func TestMain(m *testing.M) {
-	err := godotenv.Load("../.env")
-	if err != nil {
-		panic("Error loading .env file")
-	}
 
 	db = initialize.ConnectDB()
 	repo := repository.NewAccountRepository(db)

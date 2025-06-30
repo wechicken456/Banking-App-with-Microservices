@@ -1,5 +1,5 @@
 import { api, ApiError } from './api';
-import type { LoginRequest, RegisterRequest, User } from '$lib/types/auth';
+import type { LoginCredentials, RegisterCredentials, User } from '$lib/types/auth';
 
 export class AuthService {
     private static readonly ACCESS_TOKEN_KEY = 'access_token';
@@ -7,17 +7,17 @@ export class AuthService {
 
     static getAccessToken(): string | null {
         if (typeof window === 'undefined') return null;
-        return localStorage.getItem(this.ACCESS_TOKEN_KEY);
+        return sessionStorage.getItem(this.ACCESS_TOKEN_KEY);
     }
 
     static getRefreshToken(): string | null {
         if (typeof window === 'undefined') return null;
-        return localStorage.getItem(this.REFRESH_TOKEN_KEY);
+        return sessionStorage.getItem(this.REFRESH_TOKEN_KEY);
     }
 
     static setAccessToken(token: string): void {
         if (typeof window === 'undefined') return;
-        localStorage.setItem(this.ACCESS_TOKEN_KEY, token);
+        sessionStorage.setItem(this.ACCESS_TOKEN_KEY, token);
     }
 
     static setRefreshToken(token: string): void {
@@ -27,11 +27,10 @@ export class AuthService {
 
     static removeAccessToken(): void {
         if (typeof window === 'undefined') return;
-        localStorage.removeItem(this.ACCESS_TOKEN_KEY);
         sessionStorage.removeItem(this.ACCESS_TOKEN_KEY);
     }
 
-    static async login(credentials: LoginRequest): Promise<User> {
+    static async login(credentials: LoginCredentials): Promise<User> {
         try {
             const response = await api.login(credentials);
             this.setAccessToken(response.accessToken);
@@ -44,10 +43,9 @@ export class AuthService {
         }
     }
 
-    static async register(userData: RegisterRequest): Promise<User> {
+    static async register(userData: RegisterCredentials): Promise<User> {
         try {
             const response = await api.register(userData);
-            this.setAccessToken(response.accessToken);
             return response.user;
         } catch (error) {
             if (error instanceof ApiError) {

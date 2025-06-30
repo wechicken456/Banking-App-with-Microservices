@@ -2,16 +2,17 @@ package main
 
 import (
 	"api-gateway/client"
-	"api-gateway/initialize"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"strconv"
 
+	"api-gateway/handler" // my HTTP handlers
+
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware" // Chi's built-in middleware
-
-	"api-gateway/handler" // my HTTP handlers
+	"github.com/go-chi/cors"
 
 	myMiddleware "api-gateway/middleware" // my custom AuthMiddleware
 )
@@ -19,47 +20,50 @@ import (
 func main() {
 	// TODO: initialize gRPC clients to microservices
 	// authConn, err := grpc.Dial("auth-service-address:port", grpc.WithInsecure()) // Use secure credentials in production
-	// if err != nil {
-	//     log.Fatalf("did not connect to auth service: %v", err)
-	// }
-	// defer authConn.Close()
-	// authServiceClient := pb.NewAuthServiceClient(authConn)
-	//
-	//
-	initialize.LoadDotEnv()
-	_port, err := strconv.Atoi(os.Getenv("AUTH_SERVICE_PORT"))
-	if err != nil {
-		log.Printf("Invalid port for AUTH_SERVICE_PORT: %v", _port)
-		os.Exit(1)
-	}
-	authClient := client.NewAuthClient(os.Getenv("AUTH_SERVICE_URL"), _port)
+	authClient := client.NewAuthClient(os.Getenv("AUTH_SERVICE_URL"))
 	authHandler := handler.NewAuthHandler(authClient)
 
 	r := chi.NewRouter()
 
-	// --- Global Middleware (applies to all routes) ---
-	r.Use(middleware.RequestID)
-	r.Use(middleware.Logger)
-	r.Use(middleware.Recoverer) // Catches panics and returns 500
-	r.Use(middleware.URLFormat)
+	// --- Setup CORS for frontend access ---
+	r.Use(cors.Handler(cors.Options{
+		AllowedOrigins:   []string{"http://localhost:3000"}, // frontend origin
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Content-Type", "Authorization", "Accept", "Idempotency-Key"},
+		ExposedHeaders:   []string{"Content-Length"},
+		AllowCredentials: true,
+		MaxAge:           300,
+	}))
 
-	// --- Public Endpoints (do NOT require JWT validation) ---
-	r.Post("/login", authHandler.LoginHandler)
-	r.Post("/register", authHandler.CreateUserHandler)
-	r.Post("/renew-token", handler.RenewAccessTokenHandler)
+	r.Route("/api", func(r chi.Router) {
+		// --- Global Middleware (applies to all routes) ---
+		r.Use(middleware.RequestID)
+		r.Use(middleware.Logger)
+		r.Use(middleware.Recoverer) // Catches panics and returns 500
+		r.Use(middleware.URLFormat)
 
-	// --- Protected Endpoints (require JWT validation) ---
-	// Create a sub-router or group where the AuthMiddleware will be applied.
-	r.Group(func(r chi.Router) {
-		r.Use(myMiddleware.AuthMiddleware) // JWT valdiation happens in this middleware
+		// --- Public Endpoints (do NOT require JWT validation) ---
+		r.Post("/login", authHandler.LoginHandler)
+		r.Post("/register", authHandler.CreateUserHandler)
 
-		// TODO: add more routes to microservices
-		r.Post("/create-user", authHandler.CreateUserHandler)
-		r.Delete("/delete-user", authHandler.DeleteUserHandler)
+		// --- Protected Endpoints (require JWT validation) ---
+		// Create a sub-router or group where the AuthMiddleware will be applied.
+		r.Group(func(r chi.Router) {
+			r.Use(myMiddleware.AuthMiddleware) // JWT valdiation happens in this middleware
+
+			// TODO: add more routes to microservices
+			r.Delete("/delete-user", authHandler.DeleteUserHandler)
+			r.Post("/renew-token", authHandler.RenewAccessTokenHandler)
+		})
 	})
 
 	// Start the HTTP server
-	port := ":8080"
+	_port := os.Getenv("HTTP_PORT")
+	var port int
+	var err error
+	if port, err = strconv.Atoi(_port); err != nil {
+		port = 3000
+	}
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", port), r)) // Use r (the Chi router) as the handler
 	log.Printf("API Gateway listening on port %s", port)
-	log.Fatal(http.ListenAndServe(port, r)) // Use r (the Chi router) as the handler
 }

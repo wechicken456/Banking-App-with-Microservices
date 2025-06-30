@@ -6,7 +6,6 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"errors"
 	"log"
 	"time"
 
@@ -30,11 +29,10 @@ func NewAccountService(r *repository.AccountRepository, db *sqlx.DB) *AccountSer
 
 // userID is the ID of the user who initiated the request
 func (s *AccountService) CreateAccount(ctx context.Context, user *model.User, idempotencyKey uuid.UUID, userID uuid.UUID) (*model.Account, error) {
-
 	// Check if the user ID in the request matches the user ID in the context
 	if userID != user.UserID {
 		log.Printf("gRPC CreateAccount service: User ID mismatch: %v != %v\n", userID, user.UserID)
-		return nil, model.ErrUserIDMismatch
+		return nil, model.ErrNotAuthorized
 	}
 
 	var (
@@ -139,7 +137,7 @@ func (s *AccountService) GetAccount(ctx context.Context, accountID uuid.UUID, us
 	if err != nil {
 		log.Printf("gRPC GetAccount service: Failed to get accounts: %v\n", err)
 		if err == sql.ErrNoRows {
-			return nil, errors.New("account not found")
+			return nil, model.ErrInvalidArgument
 		}
 		return nil, model.ErrInternalServer
 	}
@@ -147,7 +145,7 @@ func (s *AccountService) GetAccount(ctx context.Context, accountID uuid.UUID, us
 	// Check if the user owns the account
 	if account.UserID != userID {
 		log.Printf("gRPC GetAccount service: Unauthorized access attempt for account id %v by user %v\n", accountID, userID)
-		return nil, model.ErrInternalServer
+		return nil, model.ErrNotAuthorized
 	}
 
 	return account, nil
@@ -168,7 +166,7 @@ func (s *AccountService) GetAccountByAccountNumber(ctx context.Context, accountN
 	if err != nil {
 		log.Printf("gRPC GetAccountByAccountNumber service: Failed to get account: %v\n", err)
 		if err == sql.ErrNoRows {
-			return nil, errors.New("account not found")
+			return nil, model.ErrInvalidArgument
 		}
 		return nil, model.ErrInternalServer
 	}
@@ -177,7 +175,7 @@ func (s *AccountService) GetAccountByAccountNumber(ctx context.Context, accountN
 	if account.UserID != userID {
 		log.Printf("gRPC GetAccountByAccountNumber service: Unauthorized access attempt for account number %v by user %v\n",
 			accountNumber, userID)
-		return nil, model.ErrInternalServer
+		return nil, model.ErrNotAuthorized
 	}
 
 	return account, nil
@@ -237,7 +235,7 @@ func (s *AccountService) deleteAccountByAccountNumberTx(ctx context.Context, acc
 	if err != nil {
 		log.Printf("gRPC deleteAccountByAccountNumberTx service: Failed to get account: %v\n", err)
 		if err == sql.ErrNoRows {
-			return errors.New("account not found")
+			return model.ErrInvalidArgument
 		}
 		return model.ErrInternalServer
 	}
@@ -246,7 +244,7 @@ func (s *AccountService) deleteAccountByAccountNumberTx(ctx context.Context, acc
 	if account.UserID != userID {
 		log.Printf("gRPC deleteAccountByAccountNumberTx service: Unauthorized deletion attempt for account number %v by user %v\n",
 			accountNumber, userID)
-		return model.ErrInternalServer
+		return model.ErrNotAuthorized
 	}
 
 	key, err := txRepo.GetOrClaimIdempotencyKey(ctx, &model.IdempotencyKey{
@@ -269,7 +267,7 @@ func (s *AccountService) deleteAccountByAccountNumberTx(ctx context.Context, acc
 	if err != nil {
 		log.Printf("deleteAccountByAccountNumberTx service: Failed to delete account: %v\n", err)
 		if err == sql.ErrNoRows {
-			return errors.New("account not found")
+			return model.ErrInvalidArgument
 		}
 		return model.ErrInternalServer
 	}
@@ -407,7 +405,7 @@ func (s *AccountService) createTransactionTx(ctx context.Context, transaction *m
 	if err != nil {
 		log.Printf("createTransactionTx: Failed to get account: %v\n", err)
 		if err == sql.ErrNoRows {
-			return nil, errors.New("account not found")
+			return nil, model.ErrInvalidArgument
 		}
 		return nil, model.ErrInternalServer
 	}
@@ -416,7 +414,7 @@ func (s *AccountService) createTransactionTx(ctx context.Context, transaction *m
 	if account.UserID != userID {
 		log.Printf("createTransactionTx: Unauthorized balance modification attempt for account %v by user %v\n",
 			account.AccountID, userID)
-		return nil, model.ErrInternalServer
+		return nil, model.ErrNotAuthorized
 	}
 
 	// Try to insert idempotency key with status "PENDING".
@@ -445,7 +443,7 @@ func (s *AccountService) createTransactionTx(ctx context.Context, transaction *m
 	// Check if the transaction amount is valid
 	if transaction.Amount == 0 {
 		log.Printf("createTransactionTx: Invalid transaction amount = 0\n")
-		return nil, errors.New("invalid transaction amount")
+		return nil, model.ErrInvalidArgument
 	}
 
 	// Create the transaction in the database
@@ -460,7 +458,7 @@ func (s *AccountService) createTransactionTx(ctx context.Context, transaction *m
 	if err != nil {
 		log.Printf("createTransactionTx: Failed to update balance: %v\n", err)
 		if err == sql.ErrNoRows {
-			return nil, errors.New("account not found")
+			return nil, model.ErrInvalidArgument
 		}
 		return nil, model.ErrInternalServer
 	}
@@ -606,7 +604,7 @@ func (s *AccountService) GetTransactionsByAccountID(ctx context.Context, account
 	if err != nil {
 		log.Printf("gRPC GetTransactionsByAccountID service: Failed to get account: %v\n", err)
 		if err == sql.ErrNoRows {
-			return nil, errors.New("account not found")
+			return nil, model.ErrInvalidArgument
 		}
 		return nil, model.ErrInternalServer
 	}
@@ -615,14 +613,14 @@ func (s *AccountService) GetTransactionsByAccountID(ctx context.Context, account
 	if account.UserID != userID {
 		log.Printf("gRPC GetTransactionsByAccountID service: Unauthorized access attempt for account %v by user %v\n",
 			accountID, userID)
-		return nil, model.ErrInternalServer
+		return nil, model.ErrNotAuthorized
 	}
 
 	transactions, err := txRepo.GetTransactionsByAccountID(ctx, accountID)
 	if err != nil {
 		log.Printf("gRPC GetTransactionsByAccountID service: Failed to get transactions: %v\n", err)
 		if err == sql.ErrNoRows {
-			return nil, errors.New("transaction not found")
+			return nil, model.ErrInvalidArgument
 		}
 		return nil, model.ErrInternalServer
 	}
@@ -656,7 +654,7 @@ func (s *AccountService) HasSufficientBalance(ctx context.Context, accountNumber
 	if err != nil {
 		log.Printf("gRPC HasSufficientBalance service: Failed to get account: %v\n", err)
 		if err == sql.ErrNoRows {
-			return false, errors.New("account not found")
+			return false, model.ErrInvalidArgument
 		}
 		return false, model.ErrInternalServer
 	}
@@ -665,7 +663,7 @@ func (s *AccountService) HasSufficientBalance(ctx context.Context, accountNumber
 	if account.UserID != userID {
 		log.Printf("gRPC HasSufficientBalance service: Unauthorized balance check attempt for account %v by user %v\n",
 			accountNumber, userID)
-		return false, model.ErrInternalServer
+		return false, model.ErrNotAuthorized
 	}
 
 	return account.Balance >= amount, nil

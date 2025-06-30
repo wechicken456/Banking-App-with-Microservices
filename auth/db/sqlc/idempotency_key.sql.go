@@ -7,8 +7,6 @@ package sqlc
 
 import (
 	"context"
-
-	"github.com/google/uuid"
 )
 
 const deleteIdempotencyKeyByID = `-- name: DeleteIdempotencyKeyByID :exec
@@ -16,7 +14,7 @@ DELETE FROM idempotency_keys
 WHERE key_id = $1
 `
 
-func (q *Queries) DeleteIdempotencyKeyByID(ctx context.Context, keyID uuid.UUID) error {
+func (q *Queries) DeleteIdempotencyKeyByID(ctx context.Context, keyID string) error {
 	_, err := q.db.ExecContext(ctx, deleteIdempotencyKeyByID, keyID)
 	return err
 }
@@ -35,7 +33,7 @@ const getIdempotencyKeyByID = `-- name: GetIdempotencyKeyByID :one
 SELECT key_id, status, response_message, created_at, updated_at, expired_at FROM idempotency_keys WHERE key_id = $1
 `
 
-func (q *Queries) GetIdempotencyKeyByID(ctx context.Context, keyID uuid.UUID) (IdempotencyKey, error) {
+func (q *Queries) GetIdempotencyKeyByID(ctx context.Context, keyID string) (IdempotencyKey, error) {
 	row := q.db.QueryRowContext(ctx, getIdempotencyKeyByID, keyID)
 	var i IdempotencyKey
 	err := row.Scan(
@@ -69,7 +67,7 @@ VALUES (
     NOW(),
     NOW() + interval '24 hours'
 )
-ON CONFLICT (key_id, user_id)
+ON CONFLICT (key_id)
 DO UPDATE SET
     -- Only touch 'updated_at' if the existing status is 'PENDING', to signify this transaction is actively looking at it.
     -- If it's already 'COMPLETED' or 'FAILED', we don't want to modify it here; RETURNING * will give us its state.
@@ -83,7 +81,7 @@ DO UPDATE SET
 RETURNING key_id, status, response_message, created_at, updated_at, expired_at
 `
 
-func (q *Queries) GetOrClaimIdempotencyKey(ctx context.Context, keyID uuid.UUID) (IdempotencyKey, error) {
+func (q *Queries) GetOrClaimIdempotencyKey(ctx context.Context, keyID string) (IdempotencyKey, error) {
 	row := q.db.QueryRowContext(ctx, getOrClaimIdempotencyKey, keyID)
 	var i IdempotencyKey
 	err := row.Scan(
@@ -105,9 +103,9 @@ RETURNING key_id, status, response_message, created_at, updated_at, expired_at
 `
 
 type UpdateIdempotencyKeyParams struct {
-	Status          string    `json:"status"`
-	ResponseMessage string    `json:"response_message"`
-	KeyID           uuid.UUID `json:"key_id"`
+	Status          string `json:"status"`
+	ResponseMessage string `json:"response_message"`
+	KeyID           string `json:"key_id"`
 }
 
 func (q *Queries) UpdateIdempotencyKey(ctx context.Context, arg UpdateIdempotencyKeyParams) (IdempotencyKey, error) {
@@ -131,9 +129,9 @@ WHERE key_id = $3
 `
 
 type UpdateIdempotencyKeyByIDParams struct {
-	Status          string    `json:"status"`
-	ResponseMessage string    `json:"response_message"`
-	KeyID           uuid.UUID `json:"key_id"`
+	Status          string `json:"status"`
+	ResponseMessage string `json:"response_message"`
+	KeyID           string `json:"key_id"`
 }
 
 func (q *Queries) UpdateIdempotencyKeyByID(ctx context.Context, arg UpdateIdempotencyKeyByIDParams) error {

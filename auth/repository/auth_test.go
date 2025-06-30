@@ -10,15 +10,15 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
-	"github.com/joho/godotenv"
 	"github.com/stretchr/testify/require"
 )
 
-var testRepo *AuthRepository
-var testDB *sqlx.DB
+var (
+	testRepo *AuthRepository
+	testDB   *sqlx.DB
+)
 
 func setupTestDB() func(t *testing.T) {
-	godotenv.Load("../.env")
 	testDB = initialize.ConnectDB()
 	testRepo = NewAuthRepository(testDB)
 
@@ -73,5 +73,5 @@ func TestCreateUser_Success(t *testing.T) {
 	require.Equal(t, res.Email, createUserArg.Email)
 	require.Equal(t, res.PasswordHash, createUserArg.PasswordHash)
 	fmt.Println("Passed TestCreateUser_Success")
-	//tx.Commit() // for testing that it does commit if this line runs.
+	// tx.Commit() // for testing that it does commit if this line runs.
 }

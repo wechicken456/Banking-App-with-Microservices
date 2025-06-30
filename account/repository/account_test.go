@@ -9,14 +9,10 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
-	"github.com/joho/godotenv"
 	"github.com/stretchr/testify/require"
 )
 
 func setupTestDB(t *testing.T) (*sqlx.DB, func()) {
-	err := godotenv.Load("../.env")
-	require.NoError(t, err)
-
 	db := initialize.ConnectDB()
 	return db, func() {
 		err := db.Close()

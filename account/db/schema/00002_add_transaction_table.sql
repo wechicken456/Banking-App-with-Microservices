@@ -11,7 +11,7 @@ CREATE TABLE idempotency_keys (
     updated_at TIMESTAMPTZ DEFAULT NOW(),
     expired_at TIMESTAMPTZ DEFAULT NOW() + INTERVAL '24 hour',
 
-    PRIMARY KEY (key_id, user_id) -- composite primary key to enable authorization as well
+    PRIMARY KEY (key_id, user_id) 
 );
 
 CREATE INDEX idx_idempotency_key_id ON idempotency_keys (key_id);

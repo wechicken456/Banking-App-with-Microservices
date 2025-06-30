@@ -1,13 +1,10 @@
 package handler
 
 import (
-	"api-gateway/middleware"
-	"api-gateway/model"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"strings"
 )
@@ -87,43 +84,4 @@ func DecodeJSONBody(w http.ResponseWriter, r *http.Request, dst any) error {
 		return &malformedRequest{http.StatusBadRequest, msg}
 	}
 	return nil
-}
-
-func CreateAccountHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-	}
-}
-
-// Return a new JWT access token
-// Requires the current JWT access token, and the refresh_token cookie
-func RenewAccessTokenHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-	}
-
-	// check presence of refresh_token
-	refresh_token, err := r.Cookie(model.RefreshTokenCookieName)
-	if err != nil {
-		if err == http.ErrNoCookie {
-			msg := "Missing refresh_token cookie"
-			http.Error(w, msg, http.StatusBadRequest)
-		} else {
-			log.Print(err.Error())
-			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-		}
-		return
-	}
-
-	// get the userID of the JWT access token attached to the request context via the AuthMiddleware
-	ctx := r.Context()
-	requestingUserID := ctx.Value(middleware.UserIDContextKey)
-	if requestingUserID == nil {
-		msg := "Missing bearer token"
-		http.Error(w, msg, http.StatusUnauthorized)
-		return
-	}
-
-	// TODO: use gRPC client to call the auth microservice here
-	w.Header().Set("Content-Type", "application/json")
 }

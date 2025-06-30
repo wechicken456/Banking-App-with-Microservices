@@ -65,24 +65,6 @@
         </div>
     </div>
 
-    <!-- TODO: Features Coming Soon Section -->
-    <div class="coming-soon">
-        <h2 class="coming-soon-title"> Features Coming Soon</h2>
-        <div class="features-grid">
-            <ul class="features-list">
-                <li>Account creation and management</li>
-                <li>Money transfers between accounts</li>
-                <li>Transaction history</li>
-                <li>Real-time notifications</li>
-            </ul>
-            <ul class="features-list">
-                <li>Account balance tracking</li>
-                <li>Deposit and withdrawal features</li>
-                <li>Account statements</li>
-                <li>User profile management</li>
-            </ul>
-        </div>
-    </div>
 </div>
 
 <style>
@@ -141,14 +123,6 @@
 
     .empty-text {
         @apply text-gray-500;
-    }
-
-    .coming-soon {
-        @apply mt-12 bg-blue-50 border border-blue-200 rounded-lg p-6;
-    }
-
-    .coming-soon-title {
-        @apply text-xl font-semibold text-blue-900 mb-4;
     }
 
     .features-grid {

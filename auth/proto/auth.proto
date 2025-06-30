@@ -4,7 +4,7 @@ package proto;
 
 import "buf/validate/validate.proto";
 
-option go_package = ".;proto/";
+option go_package = ".;proto";
 
 service AuthService {
   rpc CreateUser(CreateUserRequest) returns (CreateUserResponse) {}
@@ -32,9 +32,11 @@ message CreateUserResponse {
   string user_id = 3;
 }
 
-// user_id is the ID of the user to delete. Should match ID associated with the JWT token of the request validated at the API Gateway.
+// user_id is the ID of the user associated with the JWT token of the request validated at the API Gateway.
+// target_user_id is the ID of the user to delte.
 message DeleteUserRequest {
   string user_id = 1 [(buf.validate.field).string.uuid = true];
+  string target_user_id = 2 [(buf.validate.field).string.uuid = true];
   string idempotency_key = 4 [(buf.validate.field).string.uuid = true];
 }
 
@@ -51,6 +53,8 @@ message LoginResponse {
   string refresh_token = 4;
   string access_token = 5;
   string fingerprint = 6;
+  int32 access_token_duration = 1;
+  int32 refresh_token_duration = 2;
 }
 
 // user_id is most of the time the ID associated with the JWT token of the request validated at the API Gateway.
@@ -63,4 +67,5 @@ message RenewAccessTokenRequest {
 message RenewAccessTokenResponse {
   string access_token = 4;
   string fingerprint = 2;
+  int32 access_token_duration = 1;
 }

@@ -21,7 +21,7 @@
         id
     }: Props = $props();
 
-    const inputId = id || `input-${Math.random().toString(36).substr(2, 9)}`;
+    const inputId = id || `input-${Math.random().toString(36).substring(2, 2 + 9)}`;
 </script>
 
 <div class="input-container">

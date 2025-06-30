@@ -1,17 +1,16 @@
 package main
 
 import (
-	"transfer/db/initialize"
 	"fmt"
 	"log"
 	"net"
 	"os"
+	"transfer/db/initialize"
 
 	_ "github.com/lib/pq"
 )
 
 func main() {
-	initialize.LoadDotEnv()
 	db := initialize.ConnectDB()
 	defer db.Close()
 

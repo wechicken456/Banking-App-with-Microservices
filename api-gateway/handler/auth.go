@@ -2,6 +2,7 @@ package handler
 
 import (
 	"api-gateway/client"
+	"api-gateway/middleware"
 	"api-gateway/model"
 	"api-gateway/utils"
 	"context"
@@ -30,6 +31,7 @@ func (h *AuthHandler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	if err := DecodeJSONBody(w, r, &loginCreds); err != nil {
 		var mr *malformedRequest
 		if errors.As(err, &mr) {
+			log.Print(err.Error())
 			http.Error(w, mr.msg, mr.status)
 		} else {
 			log.Print(err.Error())
@@ -46,22 +48,36 @@ func (h *AuthHandler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 		IdempotencyKey: idempotencyKey,
 	})
 	if err != nil {
+		log.Printf("LoginHandler: %v\n", err)
 		utils.WriteGRPCErrorToHTTP(w, err)
 		return
 	}
+	fingerprintCookie := http.Cookie{
+		Name:     model.FingerprintCookieName,
+		Value:    res.Fingerprint,
+		MaxAge:   int(res.AccessTokenDuration),
+		SameSite: http.SameSiteStrictMode,
+		HttpOnly: true,
+		Secure:   false, // TODO: set to true during production
+	}
 
+	http.SetCookie(w, &fingerprintCookie)
 	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(&model.LoginUserResponse{
-		UserID:       res.UserId,
-		AccessToken:  res.AccessToken,
-		RefreshToken: res.RefreshToken,
-		Fingerprint:  res.Fingerprint,
-	}); err != nil {
-		log.Printf("LoginUserHandler: coudln't parse user_id: %v\n", err)
+	resBody := model.LoginResponse{
+		UserID:               res.UserId,
+		AccessToken:          res.AccessToken,
+		Email:                loginCreds.Email,	
+		Fingerprint:          res.Fingerprint,
+		RefreshToken:         res.RefreshToken,
+		AccessTokenDuration:  res.AccessTokenDuration,
+		RefreshTokenDuration: res.RefreshTokenDuration,
+	}
+	if err := json.NewEncoder(w).Encode(&resBody); err != nil {
+		log.Printf("LoginHandler: coudln't parse user_id: %v\n", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
-	log.Println("LoginUserHandler: successful")
+	log.Println("LoginHandler: successful")
 }
 
 func (h *AuthHandler) CreateUserHandler(w http.ResponseWriter, r *http.Request) {
@@ -120,7 +136,7 @@ func (h *AuthHandler) DeleteUserHandler(w http.ResponseWriter, r *http.Request) 
 	// get idempotency key from header
 	idempotencyKey := r.Header.Get("Idempotency-Key")
 
-	// TODO: use gRPC client to call the auth microservice here
+	// use gRPC client to call the auth microservice
 	_, err := h.Client.DeleteUser(context.Background(), &proto.DeleteUserRequest{
 		UserId:         userID,
 		IdempotencyKey: idempotencyKey,
@@ -131,4 +147,71 @@ func (h *AuthHandler) DeleteUserHandler(w http.ResponseWriter, r *http.Request) 
 	}
 
 	log.Println("DeleteUserHandler: successful")
+}
+
+// Return a new JWT access token
+// Requires the current JWT access token, and the refresh_token cookie
+func (h *AuthHandler) RenewAccessTokenHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	}
+
+	// check presence of refresh_token
+	refreshToken, err := r.Cookie(model.RefreshTokenCookieName)
+	if err != nil {
+		if err == http.ErrNoCookie {
+			msg := "Missing refresh_token cookie"
+			http.Error(w, msg, http.StatusBadRequest)
+		} else {
+			log.Print(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		}
+		return
+	}
+	// get idempotency key from header
+	idempotencyKey := r.Header.Get("Idempotency-Key")
+
+	// get the userID of the JWT access token attached to the request context which was passwd down by the AuthMiddleware
+	ctx := r.Context()
+	requestingUserID := ctx.Value(middleware.UserIDContextKey).(string)
+	if requestingUserID == "" {
+		msg := "Missing bearer token"
+		http.Error(w, msg, http.StatusUnauthorized)
+		return
+	}
+
+	// use gRPC client to call the auth microservice here
+	res, err := h.Client.RenewAccessToken(r.Context(),
+		&proto.RenewAccessTokenRequest{
+			UserId:         requestingUserID,
+			RefreshToken:   refreshToken.Value,
+			IdempotencyKey: idempotencyKey,
+		})
+	if err != nil {
+		log.Print(err.Error())
+		utils.WriteGRPCErrorToHTTP(w, err)
+		return
+	}
+
+	fingerprintCookie := http.Cookie{
+		Name:     model.FingerprintCookieName,
+		Value:    res.Fingerprint,
+		MaxAge:   int(res.AccessTokenDuration),
+		SameSite: http.SameSiteStrictMode,
+		HttpOnly: true,
+		Secure:   false, // TODO: set to true during production
+	}
+	http.SetCookie(w, &fingerprintCookie)
+	w.Header().Set("Content-Type", "application/json")
+	resBody := model.RenewAccessTokenResponse{
+		AccessToken:         res.AccessToken,
+		Fingerprint:         res.Fingerprint,
+		AccessTokenDuration: res.AccessTokenDuration,
+	}
+	if err := json.NewEncoder(w).Encode(&resBody); err != nil {
+		log.Printf("RenewAccessTokenHandler: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+	log.Println("RenewAccessTokenHandler: successful")
 }

@@ -1,7 +1,7 @@
 -- +goose Up
 -- +goose StatementBegin
 CREATE TABLE idempotency_keys (
-    key_id UUID  PRIMARY KEY DEFAULT gen_random_uuid(),
+    key_id TEXT PRIMARY KEY DEFAULT gen_random_uuid(),
 
     status VARCHAR(30) NOT NULL CHECK (status IN ('PENDING', 'COMPLETED', 'FAILED')),
     response_message TEXT NOT NULL,          -- gRPC response message
@@ -14,6 +14,16 @@ CREATE TABLE idempotency_keys (
 
 CREATE INDEX idx_idempotency_key_id ON idempotency_keys (key_id);
 CREATE INDEX idx_idempotency_key_expired_at ON idempotency_keys (expired_at);
+
+-- Automatically update the updated_at column for a row whenever that row is updated. 
+CREATE OR REPLACE FUNCTION update_timestamp() 
+RETURNS TRIGGER AS $$
+BEGIN 
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
 
 CREATE TRIGGER trigger_update_timestamp_idempotency_keys
 BEFORE UPDATE ON idempotency_keys

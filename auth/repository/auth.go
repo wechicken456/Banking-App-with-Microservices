@@ -48,7 +48,7 @@ func convertToCreateUserParams(user *model.User) sqlc.CreateUserParams {
 func convertToModelRefreshTokenRepo(token sqlc.RefreshToken) *model.RefreshTokenRepo {
 	return &model.RefreshTokenRepo{
 		UserID:    token.UserID,
-		TokenHash: token.Token,
+		Token:     token.Token,
 		ExpiredAt: token.ExpiredAt,
 	}
 }
@@ -172,7 +172,7 @@ func (r *AuthRepository) CreateRefreshToken(ctx context.Context, token *model.Re
 	createdToken, err := r.queries.CreateRefreshToken(ctx, sqlc.CreateRefreshTokenParams{
 		ID:        uuid.New(),
 		UserID:    token.UserID,
-		Token:     token.TokenHash,
+		Token:     token.Token,
 		ExpiredAt: token.ExpiredAt,
 	})
 	if err != nil {

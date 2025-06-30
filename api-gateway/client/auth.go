@@ -1,19 +1,17 @@
 package client
 
 import (
-	"fmt"
-
 	proto "buf.build/gen/go/banking-app/auth/grpc/go/_gogrpc"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 type AuthClient struct {
 	proto.AuthServiceClient
 }
 
-func NewAuthClient(url string, port int) *AuthClient {
-	connString := fmt.Sprintf("%s:%d", url, port)
-	conn, err := grpc.NewClient(connString)
+func NewAuthClient(connString string) *AuthClient {
+	conn, err := grpc.NewClient(connString, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		panic(err)
 	}
