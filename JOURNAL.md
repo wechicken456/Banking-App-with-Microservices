@@ -325,3 +325,5 @@ In the case of renewing an access token, the API Gateway would need to pass both
 
 
 
+# June 30 to July 10 - Created frontend. Verify `auth` works with frontend. Created `buf` schema repo for the `account` microservice.
+
