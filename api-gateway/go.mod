@@ -12,6 +12,8 @@ require (
 )
 
 require (
+	buf.build/gen/go/banking-app/account/grpc/go v1.5.1-20250710202610-9689a14fd11a.2 // indirect
+	buf.build/gen/go/banking-app/account/protocolbuffers/go v1.36.1-20250710202610-9689a14fd11a.1 // indirect
 	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.6-20250613105001-9f2d3c737feb.1 // indirect
 	github.com/go-chi/cors v1.2.1 // indirect
 	golang.org/x/net v0.41.0 // indirect

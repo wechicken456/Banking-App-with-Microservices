@@ -36,7 +36,6 @@ type RenewAccessTokenResponse struct {
 	AccessTokenDuration int32  `json:"accessTokenDuration"`
 }
 
-type Account struct{}
 
 var (
 	TokenShortDuration     time.Duration = 15 * time.Minute
