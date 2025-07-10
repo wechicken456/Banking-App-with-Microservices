@@ -193,7 +193,7 @@ func (r *AccountRepository) UpdateIdempotencyKey(ctx context.Context, idempotenc
 	return idempotencyKey, nil
 }
 
-func (r *AccountRepository) DeleteIdempotencyKeyByID(ctx context.Context, idempotencyKey uuid.UUID) error {
+func (r *AccountRepository) DeleteIdempotencyKeyByID(ctx context.Context, idempotencyKey string) error {
 	err := r.queries.DeleteIdempotencyKeyByID(ctx, idempotencyKey)
 	if err != nil {
 		return err

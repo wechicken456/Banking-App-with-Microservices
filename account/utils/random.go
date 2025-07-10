@@ -90,6 +90,6 @@ func RandomTransaction() *model.Transaction {
 	}
 }
 
-func RandomIdempotencyKey() uuid.UUID {
-	return uuid.New()
+func RandomIdempotencyKey() string {
+	return uuid.New().String()
 }

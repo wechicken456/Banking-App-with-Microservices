@@ -16,7 +16,7 @@ DELETE FROM idempotency_keys
 WHERE key_id = $1
 `
 
-func (q *Queries) DeleteIdempotencyKeyByID(ctx context.Context, keyID uuid.UUID) error {
+func (q *Queries) DeleteIdempotencyKeyByID(ctx context.Context, keyID string) error {
 	_, err := q.db.ExecContext(ctx, deleteIdempotencyKeyByID, keyID)
 	return err
 }
@@ -45,7 +45,7 @@ const getIdempotencyKeyByID = `-- name: GetIdempotencyKeyByID :one
 SELECT key_id, user_id, status, response_message, created_at, updated_at, expired_at FROM idempotency_keys WHERE key_id = $1
 `
 
-func (q *Queries) GetIdempotencyKeyByID(ctx context.Context, keyID uuid.UUID) (IdempotencyKey, error) {
+func (q *Queries) GetIdempotencyKeyByID(ctx context.Context, keyID string) (IdempotencyKey, error) {
 	row := q.db.QueryRowContext(ctx, getIdempotencyKeyByID, keyID)
 	var i IdempotencyKey
 	err := row.Scan(
@@ -64,7 +64,7 @@ const getOrClaimIdempotencyKey = `-- name: GetOrClaimIdempotencyKey :one
 INSERT INTO idempotency_keys (
      -- Insert a new idempotency key. If concurrenct transactions already created the key, its status should be "COMPLETED" or "FAILED". 
      -- Else, we're the first to create it, and we set it to "PENDING".
-     -- This statement will blockResponseMessage if there are concurrent transactions inserting the same row, even if they haven't been committed/rollbacked.
+     -- This statement will block if there are concurrent transactions inserting the same row, even if they haven't been committed/rollbacked.
     key_id,
     user_id,
     status,            
@@ -97,7 +97,7 @@ RETURNING key_id, user_id, status, response_message, created_at, updated_at, exp
 `
 
 type GetOrClaimIdempotencyKeyParams struct {
-	KeyID  uuid.UUID `json:"key_id"`
+	KeyID  string    `json:"key_id"`
 	UserID uuid.UUID `json:"user_id"`
 }
 
@@ -124,9 +124,9 @@ RETURNING key_id, user_id, status, response_message, created_at, updated_at, exp
 `
 
 type UpdateIdempotencyKeyParams struct {
-	Status          string    `json:"status"`
-	ResponseMessage string    `json:"response_message"`
-	KeyID           uuid.UUID `json:"key_id"`
+	Status          string `json:"status"`
+	ResponseMessage string `json:"response_message"`
+	KeyID           string `json:"key_id"`
 }
 
 func (q *Queries) UpdateIdempotencyKey(ctx context.Context, arg UpdateIdempotencyKeyParams) (IdempotencyKey, error) {
@@ -151,9 +151,9 @@ WHERE key_id = $3
 `
 
 type UpdateIdempotencyKeyByIDParams struct {
-	Status          string    `json:"status"`
-	ResponseMessage string    `json:"response_message"`
-	KeyID           uuid.UUID `json:"key_id"`
+	Status          string `json:"status"`
+	ResponseMessage string `json:"response_message"`
+	KeyID           string `json:"key_id"`
 }
 
 func (q *Queries) UpdateIdempotencyKeyByID(ctx context.Context, arg UpdateIdempotencyKeyByIDParams) error {

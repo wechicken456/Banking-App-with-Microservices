@@ -1,11 +1,12 @@
 package service
 
 import (
-	"account/db/initialize"
 	"account/model"
 	"account/repository"
 	"account/utils"
 	"context"
+	"fmt"
+	"log"
 	"os"
 	"sync"
 	"testing"
@@ -15,13 +16,30 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var db *sqlx.DB = nil
-var service *AccountService = nil
+var (
+	db      *sqlx.DB        = nil
+	service *AccountService = nil
+)
+
+func ConnectDB() *sqlx.DB {
+	// connect to the database
+	dbConnectString := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
+		os.Getenv("ACCOUNT_DB_HOST"),
+		os.Getenv("ACCOUNT_DB_HOST_PORT"),
+		os.Getenv("ACCOUNT_DB_USER"),
+		os.Getenv("ACCOUNT_DB_PASSWORD"),
+		os.Getenv("ACCOUNT_DB_NAME"),
+	)
+	db, err := sqlx.Connect("postgres", dbConnectString)
+	if err != nil {
+		log.Fatalf("Failed to connect to database: %v", err)
+	}
+	return db
+}
 
 // main will run before all tests
 func TestMain(m *testing.M) {
-
-	db = initialize.ConnectDB()
+	db = ConnectDB()
 	repo := repository.NewAccountRepository(db)
 	service = NewAccountService(repo, db)
 
@@ -31,19 +49,16 @@ func TestMain(m *testing.M) {
 
 // create multiple concurrent goroutines that create different accounts with different idempotency keys
 func TestCreateAccount_Success(t *testing.T) {
-
 	numTests := 10
 	results := make(chan *model.Account, numTests)
 	errChan := make(chan error, numTests)
-	keyChan := make(chan uuid.UUID, numTests)
+	keyChan := make(chan string, numTests)
 
 	for range numTests {
 		go func() {
-
 			key := utils.RandomIdempotencyKey()
 			user := utils.RandomUser()
 			account, err := service.CreateAccount(context.Background(), user, key, user.UserID)
-
 			if err != nil {
 				errChan <- err
 				return
@@ -71,7 +86,6 @@ func TestCreateAccount_Success(t *testing.T) {
 		require.NoError(t, err)
 		err = service.DeleteIdempotencyKeyByID(context.Background(), key)
 		require.NoError(t, err)
-
 	}
 }
 
@@ -99,7 +113,6 @@ func TestGetAccountByAccountNumber_Success(t *testing.T) {
 }
 
 func TestDeleteAccountByAccountNumber_Success(t *testing.T) {
-
 	user := utils.RandomUser()
 	key := utils.RandomIdempotencyKey()
 
@@ -120,12 +133,10 @@ func TestDeleteAccountByAccountNumber_Success(t *testing.T) {
 	res, err := service.GetAccountByAccountNumber(context.Background(), createdAccount.AccountNumber, user.UserID)
 	require.Error(t, err)
 	require.Nil(t, res)
-
 }
 
 // Create 1 single transaction
 func TestCreateTransaction_Success(t *testing.T) {
-
 	key := utils.RandomIdempotencyKey()
 	user := utils.RandomUser()
 	createdAccount, err := service.CreateAccount(context.Background(), user, key, user.UserID)
@@ -158,7 +169,6 @@ func TestCreateTransaction_Success(t *testing.T) {
 
 // Multiple concurrent goroutines that create different transactions (different idempotency keys) to the same account should update the account balance correctly
 func TestCreateMultipleTransactions_Success(t *testing.T) {
-
 	user := utils.RandomUser()
 	key := utils.RandomIdempotencyKey()
 	createdAccount, err := service.CreateAccount(context.Background(), user, key, user.UserID)
@@ -172,7 +182,7 @@ func TestCreateMultipleTransactions_Success(t *testing.T) {
 	numTransactions := 30
 	errChan := make(chan error, numTransactions)
 	results := make(chan *model.Transaction, numTransactions)
-	keyChan := make(chan uuid.UUID, numTransactions)
+	keyChan := make(chan string, numTransactions)
 
 	for range numTransactions {
 		go func() {
@@ -218,7 +228,6 @@ func TestCreateMultipleTransactions_Success(t *testing.T) {
 
 // Multiple concurrent goroutines that create the same transactions (same idempotency keys) should update the account balance only once
 func TestCreateMultipleTransactionsIdempotencyKey_Success(t *testing.T) {
-
 	user := utils.RandomUser()
 	key := utils.RandomIdempotencyKey()
 	createdAccount, err := service.CreateAccount(context.Background(), user, key, user.UserID)

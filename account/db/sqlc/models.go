@@ -20,7 +20,7 @@ type Account struct {
 }
 
 type IdempotencyKey struct {
-	KeyID           uuid.UUID    `json:"key_id"`
+	KeyID           string       `json:"key_id"`
 	UserID          uuid.UUID    `json:"user_id"`
 	Status          string       `json:"status"`
 	ResponseMessage string       `json:"response_message"`

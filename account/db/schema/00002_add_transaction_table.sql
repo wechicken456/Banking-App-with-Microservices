@@ -1,7 +1,7 @@
 -- +goose Up
 -- +goose StatementBegin
 CREATE TABLE idempotency_keys (
-    key_id UUID NOT NULL DEFAULT gen_random_uuid(),
+    key_id TEXT NOT NULL DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL,          -- user ID of the user who initiated the request 
 
     status VARCHAR(30) NOT NULL CHECK (status IN ('PENDING', 'COMPLETED', 'FAILED')),

@@ -1,0 +1,120 @@
+syntax = "proto3";
+
+package proto;
+
+import "buf/validate/validate.proto";
+
+option go_package = ".;proto";
+
+service AccountService {
+  rpc CreateAccount(CreateAccountRequest) returns (CreateAccountResponse) {}
+  rpc GetAccountsByUserId(GetAccountsByUserIdRequest) returns (GetAccountsByUserIdResponse) {}
+  rpc GetAccountByAccountNumber(GetAccountByAccountNumberRequest) returns (GetAccountByAccountNumberResponse) {}
+  rpc DeleteAccountByAccountNumber(DeleteAccountByAccountNumberRequest) returns (DeleteAccountByAccountNumberResponse) {}
+  rpc CreateTransaction(CreateTransactionRequest) returns (CreateTransactionResponse) {}
+  rpc GetTransactionsByAccountId(GetTransactionsByAccountIdRequest) returns (GetTransactionsByAccountIdResponse) {}
+  rpc ValidateAccountNumber(ValidateAccountNumberRequest) returns (ValidateAccountNumberResponse) {}
+  rpc HasSufficientBalance(HasSufficientBalanceRequest) returns (HasSufficientBalanceResponse) {}
+}
+
+message Account {
+  string account_id = 1;
+  int64 account_number = 2;
+  int64 balance = 3;
+  string user_id = 4;
+}
+
+message Transaction {
+  string transaction_id = 1;
+  string account_id = 2;
+  int64 amount = 3;
+  int64 timestamp = 4;
+  string transaction_type = 5; // "CREDIT" or "DEBIT" or "TRANSFER_CREDIT" or "TRANSFER_DEBIT"
+  string status = 6; // "PENDING", "COMPLETED", "FAILED"
+  string transfer_id = 7; // for transfer transactions, this is the id of the other transaction
+}
+
+// user_id is the ID of the user associated with the JWT token validated at the API Gateway
+message CreateAccountRequest {
+  string user_id = 1 [(buf.validate.field).string.uuid = true];
+  int64 balance = 2;
+  string idempotency_key = 3 [(buf.validate.field).string.uuid = true];
+}
+
+message CreateAccountResponse {
+  string account_id = 1;
+}
+
+// user_id is the ID of the user associated with the JWT token validated at the API Gateway
+message GetAccountsByUserIdRequest {
+  string user_id = 1 [(buf.validate.field).string.uuid = true];
+}
+
+message GetAccountsByUserIdResponse {
+  repeated Account accounts = 1;
+}
+
+// user_id is the ID of the user associated with the JWT token validated at the API Gateway
+message GetAccountByAccountNumberRequest {
+  string user_id = 1 [(buf.validate.field).string.uuid = true];
+  int64 account_number = 2;
+}
+
+message GetAccountByAccountNumberResponse {
+  Account account = 1;
+}
+
+// user_id is the ID of the user associated with the JWT token validated at the API Gateway
+message DeleteAccountByAccountNumberRequest {
+  string user_id = 1 [(buf.validate.field).string.uuid = true];
+  int64 account_number = 2;
+  string idempotency_key = 3 [(buf.validate.field).string.uuid = true];
+}
+
+message DeleteAccountByAccountNumberResponse {}
+
+// user_id is the ID of the user associated with the JWT token validated at the API Gateway
+message CreateTransactionRequest {
+  string user_id = 1 [(buf.validate.field).string.uuid = true];
+  string account_id = 2 [(buf.validate.field).string.uuid = true];
+  int64 amount = 3;
+  string transaction_type = 4; // "CREDIT" or "DEBIT" or "TRANSFER_CREDIT" or "TRANSFER_DEBIT"
+  string transfer_id = 5; // for transfer transactions, this is the id of the other transaction
+  string status = 6; // "PENDING", "COMPLETED", "FAILED"
+  string idempotency_key = 7 [(buf.validate.field).string.uuid = true];
+}
+
+message CreateTransactionResponse {
+  string transaction_id = 1;
+}
+
+// user_id is the ID of the user associated with the JWT token validated at the API Gateway
+message GetTransactionsByAccountIdRequest {
+  string user_id = 1 [(buf.validate.field).string.uuid = true];
+  string account_id = 2 [(buf.validate.field).string.uuid = true];
+}
+
+message GetTransactionsByAccountIdResponse {
+  repeated Transaction transactions = 1;
+}
+
+// user_id is the ID of the user associated with the JWT token validated at the API Gateway
+message ValidateAccountNumberRequest {
+  string user_id = 1 [(buf.validate.field).string.uuid = true];
+  int64 account_number = 2;
+}
+
+message ValidateAccountNumberResponse {
+  bool valid = 1;
+}
+
+// user_id is the ID of the user associated with the JWT token validated at the API Gateway
+message HasSufficientBalanceRequest {
+  string user_id = 1 [(buf.validate.field).string.uuid = true];
+  int64 account_number = 2;
+  int64 amount = 3;
+}
+
+message HasSufficientBalanceResponse {
+  bool sufficient = 1;
+}

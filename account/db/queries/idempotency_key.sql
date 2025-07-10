@@ -24,7 +24,7 @@ WHERE expired_at < NOW();
 INSERT INTO idempotency_keys (
      -- Insert a new idempotency key. If concurrenct transactions already created the key, its status should be "COMPLETED" or "FAILED". 
      -- Else, we're the first to create it, and we set it to "PENDING".
-     -- This statement will blockResponseMessage if there are concurrent transactions inserting the same row, even if they haven't been committed/rollbacked.
+     -- This statement will block if there are concurrent transactions inserting the same row, even if they haven't been committed/rollbacked.
     key_id,
     user_id,
     status,            

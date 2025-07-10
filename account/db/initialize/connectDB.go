@@ -11,7 +11,7 @@ import (
 
 func ConnectDB() *sqlx.DB {
 	// connect to the database
-	var dbConnectString = fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
+	dbConnectString := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
 		os.Getenv("ACCOUNT_DB_HOST"),
 		os.Getenv("ACCOUNT_DB_PORT"),
 		os.Getenv("ACCOUNT_DB_USER"),

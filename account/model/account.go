@@ -28,7 +28,7 @@ type Transaction struct {
 }
 
 type IdempotencyKey struct {
-	KeyID  uuid.UUID `json:"key_id"`
+	KeyID  string    `json:"key_id"`
 	UserID uuid.UUID `json:"user_id"`
 
 	Status          string `json:"status"`
@@ -36,9 +36,8 @@ type IdempotencyKey struct {
 }
 
 var (
-	ErrInternalServer    error = status.Error(codes.Internal, "internal server error")
-	ErrInvalidArgument   error = status.Error(codes.InvalidArgument, "invalid argument")
-	ErrUserAlreadyExists error = status.Error(codes.AlreadyExists, "user already exists")
-	ErrNotAuthorized     error = status.Error(codes.Unauthenticated, "not authorized")
-	ErrNotAuthenticated  error = status.Error(codes.Unauthenticated, "not authenticated")
+	ErrInternalServer   error = status.Error(codes.Internal, "internal server error")
+	ErrInvalidArgument  error = status.Error(codes.InvalidArgument, "invalid argument")
+	ErrNotAuthorized    error = status.Error(codes.PermissionDenied, "not authorized")
+	ErrNotAuthenticated error = status.Error(codes.Unauthenticated, "not authenticated")
 )
