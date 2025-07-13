@@ -7,8 +7,9 @@ Banking App written in **Golang** to learn about implementation of microservices
 **Current progress**: 
 
 1. Finished setting up PostgreSQL on **docker**.
-2. Finsihed most features for account and auth microservices. Setting up gRPC for them.
-3. Testing JWT validation at the API gateway. 
+2. Finished most features for account and auth microservices (including JWT auth). 
+3. Finished gRPC for the `auth` microservice. Setting up gRPC for the `account` microservice.
+
 
 Check [JOURNAL.md](./JOURNAL.md) for a more detailed 
 
@@ -32,7 +33,7 @@ Check [JOURNAL.md](./JOURNAL.md) for a more detailed
   - gRPC (internal service-to-service)  
   - HTTP (client-facing via API Gateway)
 
-- **Asynchronous Processing**:  
+- **Asynchronous Processing** (TODO):  
   - Redis queue for background tasks like email alerts and retries
 
 - **Database**:  
