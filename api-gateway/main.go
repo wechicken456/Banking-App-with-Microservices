@@ -22,6 +22,8 @@ func main() {
 	// authConn, err := grpc.Dial("auth-service-address:port", grpc.WithInsecure()) // Use secure credentials in production
 	authClient := client.NewAuthClient(os.Getenv("AUTH_SERVICE_URL"))
 	authHandler := handler.NewAuthHandler(authClient)
+	accountClient := client.NewAccountClient(os.Getenv("ACCOUNT_SERVICE_URL"))
+	accountHandler := handler.NewAccountHandler(accountClient)
 
 	r := chi.NewRouter()
 
@@ -52,8 +54,18 @@ func main() {
 			r.Use(myMiddleware.AuthMiddleware) // JWT valdiation happens in this middleware
 
 			// TODO: add more routes to microservices
+			// user management
 			r.Delete("/delete-user", authHandler.DeleteUserHandler)
 			r.Post("/renew-token", authHandler.RenewAccessTokenHandler)
+
+			// account management
+			r.Get("/get-all-accounts", accountHandler.GetAccountsByUserIDHandler)
+			r.Get("/get-account", accountHandler.GetAccountByAccountNumberHandler)
+			r.Post("/create-account", accountHandler.CreateAccountHandler)
+			r.Post("/delete-account", accountHandler.DeleteAccountByAccountNumberHandler)
+
+			// transaction management
+			r.Post("/create-transaction", accountHandler.CreateTransactionHandler)
 		})
 	})
 

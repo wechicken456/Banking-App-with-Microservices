@@ -18,7 +18,6 @@ export interface LoginResponse {
     email: string;
     accessToken: string; 
     refreshToken: string;
-    fingerprint: string; 
     accessTokenDuration: number; // in seconds
     refreshTokenDuration: number; // in seconds
 }

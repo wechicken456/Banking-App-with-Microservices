@@ -19,7 +19,6 @@ Check [JOURNAL.md](./JOURNAL.md) for a more detailed
 | Service                   | Responsibilities                                                                 |
 |---------------------------|-----------------------------------------------------------------------------------|
 | **auth-service**          | User signup/login, JWT issuance, password hashing                 |
-| **user-service**          | Manages user profiles, user metadata, and links users to their accounts          |
 | **account-service**       | Manages account details, balances, deposits, withdrawals, and transaction history (ACID guarantees) |
 | **transfer-service**      | Orchestrates fund transfers: validates source/target accounts, invokes debit/credit via gRPC, ensures consistency |
 | **notification-service**  | Sends asynchronous email alerts (e.g. transfer success/failure) using Redis + Gmail SMTP |

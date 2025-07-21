@@ -2,7 +2,7 @@ import { authStore } from '$lib/stores/auth.svelte';
 import { browser } from '$app/environment';
 import { goto } from '$app/navigation';
 
-export function requireAuth() {
+export function requireAuth() : boolean {
     if (browser && !authStore.isAuthenticated) {
         goto('/login');
         return false;
@@ -10,7 +10,7 @@ export function requireAuth() {
     return true;
 }
 
-export function redirectIfAuthenticated() {
+export function redirectIfAuthenticated() : boolean {
     if (browser && authStore.isAuthenticated) {
         goto('/dashboard');
         return true;

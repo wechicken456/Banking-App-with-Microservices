@@ -6,7 +6,6 @@ import { api } from '$lib/services/api';
 class AuthStore {
     private readonly ACCESS_TOKEN_KEY = 'accessToken';
     private readonly REFRESH_TOKEN_KEY = 'refreshToken';
-    private readonly FINGERPRINT_KEY = 'fingerprint';
     user = $state<User | null>(null);
     isLoading = $state(false);
     isAuthenticated = $derived(this.user !== null);
@@ -14,17 +13,16 @@ class AuthStore {
     constructor() {
         if (browser) {
             this.checkAuth();
+            // set the token provider for protected API calls
+            api.setTokenProvider({  
+                getAccessToken: () => this.getAccessToken(),
+            });
         }
     }
 
     private getAccessToken(): string | null {
         if (typeof window === 'undefined') return null;
         return sessionStorage.getItem(this.ACCESS_TOKEN_KEY);
-    }
-
-    private getFingerprint(): string | null {
-        if (typeof window === 'undefined') return null;
-        return sessionStorage.getItem(this.FINGERPRINT_KEY);
     }
 
     private getRefreshToken(): string | null {
@@ -35,11 +33,6 @@ class AuthStore {
     private setAccessToken(token: string): void {
         if (typeof window === 'undefined') return;
         sessionStorage.setItem(this.ACCESS_TOKEN_KEY, token);
-    }
-
-    private setFingerprint(fingerprint: string): void {
-        if (typeof window === 'undefined') return;
-        sessionStorage.setItem(this.FINGERPRINT_KEY, fingerprint);
     }
 
     private setRefreshToken(token: string): void {
@@ -98,7 +91,6 @@ class AuthStore {
 
             this.setAccessToken(response.accessToken);
             this.setRefreshToken(response.refreshToken);
-            this.setFingerprint(response.fingerprint);
             
             this.user = {id: response.userId, email: response.email};
 
@@ -168,7 +160,6 @@ class AuthStore {
         if (browser) {
             sessionStorage.removeItem(this.ACCESS_TOKEN_KEY);
             sessionStorage.removeItem(this.REFRESH_TOKEN_KEY);
-            sessionStorage.removeItem(this.FINGERPRINT_KEY);
             // TODO: clear cookies across tabs
         }
     }

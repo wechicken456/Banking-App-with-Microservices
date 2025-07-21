@@ -1,6 +1,18 @@
 import type { LoginCredentials, LoginResponse, AuthTokens, User } from '$lib/types/auth';
+import type { Account } from '$lib/types/account';
 
 const API_BASE_URL = 'http://localhost:8080/api';
+
+const PROTECTED_ENDPOINTS = ['/profile', '/get-all-accounts', '/get-account', '/delete-account']; 
+function isProtectedEndpoint(endpoint: string): boolean {
+    return PROTECTED_ENDPOINTS.some(protectedEndpoint => endpoint.includes(protectedEndpoint));
+}
+
+// Token provider interface for dependency injection.
+// This allows us to separate the token retrieval logic from the API service
+interface TokenProvider {
+    getAccessToken(): string | null;
+}
 
 class ApiError extends Error {
     constructor(
@@ -23,16 +35,20 @@ async function fetchApi<T>(
     options: RequestInit = {}
 ): Promise<T> {
     const url = `${API_BASE_URL}${endpoint}`;
-    
+
     // Generate idempotency key for non-GET requests
     const needsIdempotencyKey = options.method && options.method !== 'GET';
     const idempotencyKey = needsIdempotencyKey ? generateIdempotencyKey() : undefined;
-    
+
+    // Get access token for protected endpoints
+    const accessToken = isProtectedEndpoint(endpoint) ? tokenProvider?.getAccessToken() : null;
+
     const response = await fetch(url, {
         ...options,
         headers: {
             'Content-Type': 'application/json',
             ...(idempotencyKey && { 'Idempotency-Key': idempotencyKey }),
+            ...(accessToken && { 'Authorization': `Bearer ${accessToken}` }),
             ...options.headers,
         },
         credentials: 'include', // Important for cookies
@@ -50,7 +66,13 @@ async function fetchApi<T>(
     return response.json();
 }
 
+let tokenProvider: TokenProvider | null = null;
 export const api = {
+    tokenProvider,
+    setTokenProvider(provider: TokenProvider) {
+        tokenProvider = provider;
+    },
+
     async login(credentials: LoginCredentials): Promise<LoginResponse> {
         return fetchApi<LoginResponse>('/login', {
             method: 'POST',
@@ -65,8 +87,8 @@ export const api = {
         });
     },
 
-    async renewToken(authTokens : AuthTokens): Promise<{accessToken: string}> {
-        return fetchApi<{accessToken : string }>('/renew-token', {
+    async renewToken(authTokens: AuthTokens): Promise<{ accessToken: string }> {
+        return fetchApi<{ accessToken: string }>('/renew-token', {
             method: 'POST',
             body: JSON.stringify(authTokens),
         });
@@ -75,10 +97,8 @@ export const api = {
     async logout(): Promise<void> {
         // Clear local storage and let the server-side handle cookie cleanup
         if (typeof window !== 'undefined') {
-            sessionStorage.removeItem('access_token');
-            sessionStorage.removeItem('access_token');
-            sessionStorage.removeItem("refresh_token");
-            sessionStorage.removeItem("refresh_token");
+            sessionStorage.removeItem('accessToken');
+            sessionStorage.removeItem("refreshToken");
         }
     },
 
@@ -86,7 +106,26 @@ export const api = {
         return fetchApi<User>('/profile', {
             method: 'GET',
         })
-    }
+    },
+
+    async getAccounts(): Promise<Account[]> {
+        return fetchApi<Account[]>('/get-all-accounts', {
+            method: 'GET',
+        })
+    },
+
+    async getAccount(accountNumber: number): Promise<Account[]> {
+        return fetchApi<Account[]>(`/get-account?accountNumber=${encodeURIComponent(accountNumber)}`, {
+            method: 'GET',
+        })
+    },
+
+    async deleteAccount(accountNumber: number): Promise< {success : boolean }> {
+        return fetchApi<{ success : boolean }>('/delete-account', {
+            method: 'DELETE',
+            body: JSON.stringify({ 'accountNumber': accountNumber })
+        })
+    },
 };
 
 export { ApiError };
