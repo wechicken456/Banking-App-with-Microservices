@@ -24,7 +24,6 @@ type LoginResponse struct {
 	UserID               string `json:"userId"`
 	Email                string `json:"email"`
 	AccessToken          string `json:"accessToken"`
-	Fingerprint          string `json:"fingerprint"`
 	RefreshToken         string `json:"refreshToken"`
 	AccessTokenDuration  int32  `json:"accessTokenDuration"`
 	RefreshTokenDuration int32  `json:"refreshTokenDuration"`
@@ -32,10 +31,8 @@ type LoginResponse struct {
 
 type RenewAccessTokenResponse struct {
 	AccessToken         string `json:"accessToken"`
-	Fingerprint         string `json:"fingerprint"`
 	AccessTokenDuration int32  `json:"accessTokenDuration"`
 }
-
 
 var (
 	TokenShortDuration     time.Duration = 15 * time.Minute

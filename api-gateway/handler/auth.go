@@ -66,14 +66,13 @@ func (h *AuthHandler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	resBody := model.LoginResponse{
 		UserID:               res.UserId,
 		AccessToken:          res.AccessToken,
-		Email:                loginCreds.Email,	
-		Fingerprint:          res.Fingerprint,
+		Email:                loginCreds.Email,
 		RefreshToken:         res.RefreshToken,
 		AccessTokenDuration:  res.AccessTokenDuration,
 		RefreshTokenDuration: res.RefreshTokenDuration,
 	}
 	if err := json.NewEncoder(w).Encode(&resBody); err != nil {
-		log.Printf("LoginHandler: coudln't parse user_id: %v\n", err)
+		log.Printf("LoginHandler: coudln't parse userId: %v\n", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -112,7 +111,7 @@ func (h *AuthHandler) CreateUserHandler(w http.ResponseWriter, r *http.Request) 
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(&model.CreateUserResponse{UserID: res.UserId}); err != nil {
-		log.Printf("CreateUserHandler: coudln't parse user_id: %v\n", err)
+		log.Printf("CreateUserHandler: coudln't parse userId: %v\n", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -127,9 +126,9 @@ func (h *AuthHandler) DeleteUserHandler(w http.ResponseWriter, r *http.Request) 
 	// get user id from the URL parameter
 	u := r.URL
 	queryParams := u.Query()
-	userID := queryParams.Get("user_id")
+	userID := queryParams.Get("userId")
 	if userID == "" {
-		http.Error(w, "Missing argument user_id", http.StatusBadRequest)
+		http.Error(w, "Missing argument userId", http.StatusBadRequest)
 		return
 	}
 
@@ -150,17 +149,17 @@ func (h *AuthHandler) DeleteUserHandler(w http.ResponseWriter, r *http.Request) 
 }
 
 // Return a new JWT access token
-// Requires the current JWT access token, and the refresh_token cookie
+// Requires the current JWT access token, and the refreshToken cookie
 func (h *AuthHandler) RenewAccessTokenHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
 
-	// check presence of refresh_token
+	// check presence of refreshToken
 	refreshToken, err := r.Cookie(model.RefreshTokenCookieName)
 	if err != nil {
 		if err == http.ErrNoCookie {
-			msg := "Missing refresh_token cookie"
+			msg := "Missing refreshToken cookie"
 			http.Error(w, msg, http.StatusBadRequest)
 		} else {
 			log.Print(err.Error())
@@ -205,7 +204,6 @@ func (h *AuthHandler) RenewAccessTokenHandler(w http.ResponseWriter, r *http.Req
 	w.Header().Set("Content-Type", "application/json")
 	resBody := model.RenewAccessTokenResponse{
 		AccessToken:         res.AccessToken,
-		Fingerprint:         res.Fingerprint,
 		AccessTokenDuration: res.AccessTokenDuration,
 	}
 	if err := json.NewEncoder(w).Encode(&resBody); err != nil {

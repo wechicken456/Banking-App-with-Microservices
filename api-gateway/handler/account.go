@@ -136,9 +136,9 @@ func (h *AccountHandler) GetAccountByAccountNumberHandler(w http.ResponseWriter,
 	// get account number from URL parameter
 	u := r.URL
 	queryParams := u.Query()
-	accountNumber, err := strconv.ParseInt(queryParams.Get("account_number"), 10, 64)
+	accountNumber, err := strconv.ParseInt(queryParams.Get("accountNumber"), 10, 64)
 	if err != nil {
-		http.Error(w, "invalid account_number", http.StatusBadRequest)
+		http.Error(w, "invalid accountNumber", http.StatusBadRequest)
 		return
 	}
 
@@ -259,7 +259,6 @@ func (h *AccountHandler) CreateTransactionHandler(w http.ResponseWriter, r *http
 	// get idempotency key from header
 	idempotencyKey := r.Header.Get("Idempotency-Key")
 
-	// get the userID from the request context (passed by AuthMiddleware)
 	ctx := r.Context()
 	requestingUserID := ctx.Value(middleware.UserIDContextKey).(string)
 	if requestingUserID == "" {
