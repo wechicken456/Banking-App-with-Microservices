@@ -22,7 +22,7 @@ type Transaction struct {
 	TransactionID   uuid.UUID     `json:"transaction_id"`
 	AccountID       uuid.UUID     `json:"account_id"`
 	Amount          int64         `json:"amount"`
-	TransactionType string        `json:"transaction_type"`
+	TransactionType string        `json:"transaction_type"` // DEPOSIT, WITHDRAWAL, TRANSFER_DEBIT, TRANSFER_CREDIT
 	Status          string        `json:"status"`
 	TransferID      uuid.NullUUID `json:"transfer_id"`
 }

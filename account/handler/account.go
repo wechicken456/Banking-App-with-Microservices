@@ -37,7 +37,8 @@ func (h *AccountHandler) CreateAccount(ctx context.Context, req *proto.CreateAcc
 	}
 
 	return &proto.CreateAccountResponse{
-		AccountId: account.AccountID.String(),
+		AccountId:     account.AccountID.String(),
+		AccountNumber: account.AccountNumber,
 	}, nil
 }
 
@@ -134,7 +135,7 @@ func (h *AccountHandler) CreateTransaction(ctx context.Context, req *proto.Creat
 		AccountID:       accountID,
 		Amount:          req.Amount,
 		TransactionType: req.TransactionType,
-		Status:          req.Status,
+		Status:          "PENDING",
 		TransferID:      transferID,
 	}
 

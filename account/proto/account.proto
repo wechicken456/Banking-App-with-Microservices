@@ -43,6 +43,7 @@ message CreateAccountRequest {
 
 message CreateAccountResponse {
   string account_id = 1;
+  int64 account_number = 2;
 }
 
 // user_id is the ID of the user associated with the JWT token validated at the API Gateway

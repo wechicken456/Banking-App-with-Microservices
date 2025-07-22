@@ -246,6 +246,7 @@ func (x *CreateAccountRequest) GetIdempotencyKey() string {
 type CreateAccountResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	AccountId     string                 `protobuf:"bytes,1,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`
+	AccountNumber int64                  `protobuf:"varint,2,opt,name=account_number,json=accountNumber,proto3" json:"account_number,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -285,6 +286,13 @@ func (x *CreateAccountResponse) GetAccountId() string {
 		return x.AccountId
 	}
 	return ""
+}
+
+func (x *CreateAccountResponse) GetAccountNumber() int64 {
+	if x != nil {
+		return x.AccountNumber
+	}
+	return 0
 }
 
 // user_id is the ID of the user associated with the JWT token validated at the API Gateway
@@ -1030,10 +1038,11 @@ const file_account_proto_rawDesc = "" +
 	"\x14CreateAccountRequest\x12!\n" +
 	"\auser_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x06userId\x12\x18\n" +
 	"\abalance\x18\x02 \x01(\x03R\abalance\x121\n" +
-	"\x0fidempotency_key\x18\x03 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x0eidempotencyKey\"6\n" +
+	"\x0fidempotency_key\x18\x03 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x0eidempotencyKey\"]\n" +
 	"\x15CreateAccountResponse\x12\x1d\n" +
 	"\n" +
-	"account_id\x18\x01 \x01(\tR\taccountId\"?\n" +
+	"account_id\x18\x01 \x01(\tR\taccountId\x12%\n" +
+	"\x0eaccount_number\x18\x02 \x01(\x03R\raccountNumber\"?\n" +
 	"\x1aGetAccountsByUserIdRequest\x12!\n" +
 	"\auser_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x06userId\"I\n" +
 	"\x1bGetAccountsByUserIdResponse\x12*\n" +
