@@ -59,13 +59,14 @@ func main() {
 			r.Post("/renew-token", authHandler.RenewAccessTokenHandler)
 
 			// account management
-			r.Get("/get-all-accounts", accountHandler.GetAccountsByUserIDHandler)
-			r.Get("/get-account", accountHandler.GetAccountByAccountNumberHandler)
+			r.Get("/all-accounts", accountHandler.GetAccountsByUserIDHandler)
+			r.Get("/account", accountHandler.GetAccountByAccountNumberHandler)
 			r.Post("/create-account", accountHandler.CreateAccountHandler)
 			r.Post("/delete-account", accountHandler.DeleteAccountByAccountNumberHandler)
 
 			// transaction management
 			r.Post("/create-transaction", accountHandler.CreateTransactionHandler)
+			r.Get("/transactions", accountHandler.GetTransactionsByAccountIDHandler)
 		})
 	})
 

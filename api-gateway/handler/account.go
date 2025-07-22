@@ -67,7 +67,7 @@ func (h *AccountHandler) CreateAccountHandler(w http.ResponseWriter, r *http.Req
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(&model.CreateAccountResponse{AccountID: res.AccountId}); err != nil {
+	if err := json.NewEncoder(w).Encode(&model.CreateAccountResponse{AccountID: res.AccountId, AccountNumber: res.AccountNumber}); err != nil {
 		log.Printf("CreateAccountHandler: couldn't encode response: %v", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
@@ -300,4 +300,68 @@ func (h *AccountHandler) CreateTransactionHandler(w http.ResponseWriter, r *http
 		return
 	}
 	log.Println("CreateTransactionHandler: successful")
+}
+
+// GetTransactionsByAccountID gets all transactions related to an account
+func (h *AccountHandler) GetTransactionsByAccountIDHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// get account number from URL parameter
+	u := r.URL
+	queryParams := u.Query()
+	accountId := queryParams.Get("accountId")
+	if accountId == "" {
+		http.Error(w, "need an accountId", http.StatusBadRequest)
+		return
+	}
+
+	// get the userID from the request context (passed by AuthMiddleware)
+	ctx := r.Context()
+	requestingUserID := ctx.Value(middleware.UserIDContextKey).(string)
+	if requestingUserID == "" {
+		http.Error(w, "Missing user authentication", http.StatusUnauthorized)
+		return
+	}
+
+	userIDBytes, err := uuid.Parse(requestingUserID)
+	if err != nil {
+		log.Printf("GetAccountByAccountNumberHandler: Failed to parse user ID: %v", err)
+		http.Error(w, "Invalid user ID", http.StatusBadRequest)
+		return
+	}
+
+	// use gRPC client to call the account microservice
+	res, err := h.Client.GetTransactionsByAccountId(context.Background(), &proto.GetTransactionsByAccountIdRequest{
+		UserId:    userIDBytes.String(),
+		AccountId: accountId,
+	})
+	if err != nil {
+		log.Printf("GetTransactionsByAccountId: %v", err)
+		utils.WriteGRPCErrorToHTTP(w, err)
+		return
+	}
+
+	resp := model.GetTransactionsByAccountIdResponse{}
+	for _, trans := range res.Transactions {
+		tmp := model.Transaction{}
+		tmp.AccountID = trans.AccountId
+		tmp.TransactionID = trans.TransactionId
+		tmp.TransactionType = trans.TransactionType
+		tmp.Amount = trans.Amount
+		tmp.Timestamp = trans.Timestamp
+		tmp.Status = trans.Status
+		tmp.TransferID = trans.TransferId
+		resp.Transactions = append(resp.Transactions, tmp)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(&resp); err != nil {
+		log.Printf("GetTransactionsByAccountId: couldn't encode response: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+	log.Println("GetTransactionsByAccountId: successful")
 }

@@ -5,7 +5,8 @@ type CreateAccountRequest struct {
 }
 
 type CreateAccountResponse struct {
-	AccountID string `json:"accountId"`
+	AccountID     string `json:"accountId"`
+	AccountNumber int64  `json:"accountNumber"`
 }
 
 type Account struct {
@@ -37,14 +38,19 @@ type Transaction struct {
 	TransferID      string `json:"transferId,omitempty"`
 }
 
+// the TransactionType can only be "DEPOSIT" or "WITHDRAWAL".
+// Only the transfer service can create "TRANSFER_CREDIT" or "TRANSFER_DEBIT" transactions, and it will use gRPC to call the account service directly.
+// Hence, the API Gateway does NOT directly handle the transfer requests.
 type CreateTransactionRequest struct {
 	AccountID       string `json:"accountId"`
 	Amount          int64  `json:"amount"`
 	TransactionType string `json:"transactionType"`
-	TransferID      string `json:"transferId,omitempty"`
-	Status          string `json:"status"`
 }
 
 type CreateTransactionResponse struct {
 	TransactionID string `json:"transactionId"`
+}
+
+type GetTransactionsByAccountIdResponse struct {
+	Transactions []Transaction `json:"transactions"`
 }
