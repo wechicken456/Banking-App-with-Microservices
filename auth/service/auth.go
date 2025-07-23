@@ -42,6 +42,16 @@ func NewAuthService(repo *repository.AuthRepository, db *sqlx.DB) *AuthService {
 	}
 }
 
+// userID is passed downstream to us by the API Gateway after it has validated the JWT
+func (s *AuthService) GetUserProfileByID(ctx context.Context, userID uuid.UUID) (*model.UserProfile, error) {
+	res, err := s.repo.GetUserByID(ctx, userID)
+	if err != nil {
+		log.Printf("GetUserProfileByID: %v", err)
+		return nil, model.ErrInternalServer
+	}
+	return utils.ConvertUserToProfile(res), nil
+}
+
 func (s *AuthService) CreateUser(ctx context.Context, user *model.User, idempotencyKey string) (*model.User, error) {
 	createdUser, err := s.createUserTx(ctx, user, idempotencyKey)
 	if err != nil {
@@ -165,7 +175,6 @@ func (s *AuthService) DeleteUser(ctx context.Context, userID uuid.UUID, targetUs
 }
 
 func (s *AuthService) Login(ctx context.Context, user *model.User, idempotencyKey string) (*model.LoginResult, error) {
-
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		log.Printf("Login: failed to beign transaction: %v", err)

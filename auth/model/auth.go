@@ -15,6 +15,12 @@ type User struct {
 	Password string    `json:"password"`
 }
 
+// information to return to the frontend client.
+// Created as a struct in case we need to add more fields.
+type UserProfile struct {
+	Email string `json:"email"`
+}
+
 type RefreshToken struct {
 	Token    string `json:"token"`
 	Duration int    `json:"duration"` // seconds

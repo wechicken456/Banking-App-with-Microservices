@@ -4,6 +4,7 @@ import (
 	"auth/model"
 	"auth/proto"
 	"auth/service"
+	"auth/utils"
 	"context"
 
 	"github.com/google/uuid"
@@ -32,6 +33,15 @@ func (h *AuthHandler) CreateUser(ctx context.Context, req *proto.CreateUserReque
 	return &proto.CreateUserResponse{
 		UserId: user.UserID.String(),
 	}, nil
+}
+
+func (h *AuthHandler) GetUserProfileById(ctx context.Context, req *proto.GetUserProfileByIdRequest) (*proto.UserProfile, error) {
+	userID, err := uuid.Parse(req.UserId)
+	if err != nil {
+		return &proto.UserProfile{}, err
+	}
+	profile, err := h.service.GetUserProfileByID(ctx, userID)
+	return utils.ConvertProfileToProtoProfile(profile), nil
 }
 
 func (h *AuthHandler) DeleteUser(ctx context.Context, req *proto.DeleteUserRequest) (*proto.DeleteUserResponse, error) {

@@ -29,7 +29,15 @@ message CreateUserRequest {
 }
 
 message CreateUserResponse {
-  string user_id = 3;
+  string user_id = 1 [(buf.validate.field).string.uuid = true];
+}
+
+message GetUserProfileByIdRequest {
+  string user_id = 1 [(buf.validate.field).string.uuid = true];
+}
+
+message UserProfile {
+  string email = 1 [(buf.validate.field).string.email = true];
 }
 
 // user_id is the ID of the user associated with the JWT token of the request validated at the API Gateway.
