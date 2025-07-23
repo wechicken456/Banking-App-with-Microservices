@@ -16,7 +16,7 @@
     
     let account = $state<Account | null>(null);
     let transactions = $state<Transaction[]>([]);
-    let accountNumber = $state<number>(0);
+    let accountNumber = $state<string>('');
     
     // Modal states
     let showTransactionModal = $state<boolean>(false);
@@ -29,7 +29,7 @@
         const url = new URL(window.location.href);
         const accountNumberParam = url.searchParams.get('accountNumber');
         if (accountNumberParam) {
-            accountNumber = parseInt(accountNumberParam);
+            accountNumber = accountNumberParam;
         }
     });
 
@@ -45,13 +45,12 @@
         }
 
         await loadAccountData();
-        // Load all accounts for transfer functionality
-        await accountStore.fetchAllAccounts();
     });
 
     async function loadAccountData() {
         try {
             account = await accountStore.fetchAccountByAccountNumber(accountNumber);
+            console.log("account: ", account);
             transactions = await accountStore.fetchTransactionsByAccountId(account?.accountId || '');
         } catch (error) {
             console.error('Failed to load account data:', error);
@@ -73,7 +72,7 @@
         });
     }
 
-    function getAccountNumber(accountId: string): number | undefined {
+    function getAccountNumber(accountId: string): string | undefined {
         return account?.accountNumber;
     }
 
@@ -136,7 +135,7 @@
     <div class="account-header">
         <div class="header-navigation">
             <Button variant="outline" onclick={() => goto('/dashboard')}>
-                ← Back to Dashboard
+                Back to Dashboard
             </Button>
         </div>
         
@@ -151,16 +150,16 @@
 
             <!-- Account Actions -->
             <div class="account-actions">
-                <Button onclick={handleDeposit} class="action-button deposit">
+                <Button onclick={handleDeposit}>
                     Deposit Money
                 </Button>
-                <Button variant="secondary" onclick={handleWithdraw} class="action-button withdraw">
+                <Button variant="secondary" onclick={handleWithdraw}>
                     Withdraw Money
                 </Button>
-                <Button variant="secondary" onclick={handleTransfer} class="action-button transfer">
+                <Button variant="secondary" onclick={handleTransfer}>
                     Transfer Funds
                 </Button>
-                <Button variant="destructive" onclick={handleDeleteAccount} class="action-button delete">
+                <Button variant="destructive" onclick={handleDeleteAccount}>
                     Delete Account
                 </Button>
             </div>
@@ -228,6 +227,8 @@
 {/if}
 
 <style>
+    @reference '../../app.css';
+
     .account-container {
         @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8;
     }
@@ -264,7 +265,7 @@
         @apply flex gap-4 flex-wrap;
     }
 
-    .action-button {
+    .account-actions :global(button) {
         @apply min-w-[140px];
     }
 

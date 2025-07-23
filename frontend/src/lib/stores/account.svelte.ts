@@ -3,11 +3,11 @@ import { api } from '$lib/services/api';
 
 
 class AccountStore {
-    accounts = $state<Account[] | null>(null);
+    accounts = $state<Account[]>([]);
     isLoading = $state(false);
     error = $state < string | null > (null);
-
-    constructor() { }
+    
+    constructor() {}
 
     async createAccount(balance : number) : Promise<Account> {
         this.isLoading = true;
@@ -31,10 +31,16 @@ class AccountStore {
         this.error = null;
 
         try {
-            const accounts = await api.getAccounts();
+            const res = await api.getAccounts();
+            const accounts = res.accounts;
+            if (!accounts || accounts.length == 0) {
+                this.accounts = [];
+                return [];
+            }
             this.accounts = accounts;
             return this.accounts;
         } catch (err) {
+            this.accounts = [];
             this.error = err instanceof Error ? err.message : 'Failed to fetch accounts';
             throw err;
         } finally {
@@ -42,13 +48,13 @@ class AccountStore {
         }
     }
 
-    async fetchAccountByAccountNumber(accountNumber: number): Promise<Account | null> {
+    async fetchAccountByAccountNumber(accountNumber: string): Promise<Account | null> {
         this.isLoading = true;
         this.error = null;
 
         try {
-            const account = await api.getAccount(accountNumber);
-            return account;
+            const resp = await api.getAccount(accountNumber);
+            return resp.account;
         } catch (err) {
             this.error = err instanceof Error ? err.message : 'Failed to fetch account';
             throw err;
@@ -57,7 +63,7 @@ class AccountStore {
         }
     }
 
-    async deleteAccount(accountNumber: number): Promise<{ success: boolean }> {
+    async deleteAccount(accountNumber: string): Promise<{ success: boolean }> {
         this.isLoading = true;
         this.error = null;
         
@@ -76,14 +82,37 @@ class AccountStore {
         }
     }
 
-    async createTransaction(accountNumber: number, amount: number, type: 'DEPOSIT' | 'WITHDRAWAL' | 'TRANSFER_CREDIT' | 'TRANSFER_DEBIT'): Promise<void> {
+    async createTransaction(accountNumber: string, amount: number, type: 'DEPOSIT' | 'WITHDRAWAL' | 'TRANSFER_CREDIT' | 'TRANSFER_DEBIT'): Promise<void> {
         this.isLoading = true;
         this.error = null;
+        let transactionType: 'CREDIT' | 'DEBIT' | 'TRANSFER_CREDIT' | 'TRANSFER_DEBIT';
+        switch  (type) {
+            case 'DEPOSIT': {
+                transactionType = 'CREDIT';
+                break;
+            } 
+            case 'WITHDRAWAL': {
+                transactionType = 'DEBIT';
+                break;
+            } 
+            case 'TRANSFER_CREDIT': {
+                transactionType = 'TRANSFER_CREDIT';
+                break;
+            } 
+            case 'TRANSFER_DEBIT': {
+                transactionType = 'TRANSFER_DEBIT';
+                break;
+            }
+            default: {
+                throw new Error('Invalid transaction type');
+            }
+        }
+
         try {
             await api.createTransaction({
                 accountId: accountNumber.toString(),
                 amount: amount,
-                transactionType: type,
+                transactionType: transactionType,
             } as CreateTransactionRequest); 
             // Refresh accounts list after transaction
             await this.fetchAllAccounts();

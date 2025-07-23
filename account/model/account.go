@@ -15,7 +15,7 @@ type Account struct {
 	AccountID     uuid.UUID `json:"account_id"`
 	UserID        uuid.UUID `json:"user_id"`
 	Balance       int64     `json:"balance"`
-	AccountNumber int64     `json:"account_number"`
+	AccountNumber int32     `json:"account_number"`
 }
 
 type Transaction struct {

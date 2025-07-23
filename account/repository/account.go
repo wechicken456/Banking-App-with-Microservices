@@ -34,7 +34,7 @@ func convertToModelAccount(account sqlc.Account) *model.Account {
 		AccountID:     account.ID,
 		UserID:        account.UserID,
 		Balance:       account.Balance,
-		AccountNumber: account.AccountNumber,
+		AccountNumber: int32(account.AccountNumber),
 	}
 }
 
@@ -65,16 +65,16 @@ func convertToCreateAccountParams(account *model.Account) *sqlc.CreateAccountPar
 		ID:            account.AccountID,
 		UserID:        account.UserID,
 		Balance:       account.Balance,
-		AccountNumber: account.AccountNumber,
+		AccountNumber: int64(account.AccountNumber),
 	}
 }
 
 func (r *AccountRepository) CreateAccount(ctx context.Context, user *model.User) (*model.Account, error) {
 	createdAccount, err := r.queries.CreateAccount(ctx, sqlc.CreateAccountParams{
-		ID:            user.UserID,
+		ID:            uuid.New(),
 		UserID:        user.UserID,
 		Balance:       user.Balance,
-		AccountNumber: utils.RandomAccountNumber(),
+		AccountNumber: int64(utils.RandomAccountNumber()),
 	})
 	if err != nil {
 		return nil, err
@@ -82,8 +82,8 @@ func (r *AccountRepository) CreateAccount(ctx context.Context, user *model.User)
 	return convertToModelAccount(createdAccount), nil
 }
 
-func (r *AccountRepository) GetAccountByAccountNumber(ctx context.Context, accountNumber int64) (*model.Account, error) {
-	account, err := r.queries.GetAccountByAccountNumber(ctx, accountNumber)
+func (r *AccountRepository) GetAccountByAccountNumber(ctx context.Context, accountNumber int32) (*model.Account, error) {
+	account, err := r.queries.GetAccountByAccountNumber(ctx, int64(accountNumber))
 	if err != nil {
 		return nil, err
 	}
@@ -111,9 +111,9 @@ func (r *AccountRepository) GetAccountsByUserID(ctx context.Context, userID uuid
 }
 
 // I think AddToAccountBalance is clearer than UpdateAccountBalance cause Update can mean "set" it to this amount instead of adding/substracting to it
-func (r *AccountRepository) AddToAccountBalance(ctx context.Context, accountNumber int64, amount int64) (*model.Account, error) {
+func (r *AccountRepository) AddToAccountBalance(ctx context.Context, accountNumber int32, amount int64) (*model.Account, error) {
 	account, err := r.queries.AddToAccountBalance(ctx, sqlc.AddToAccountBalanceParams{
-		AccountNumber: accountNumber,
+		AccountNumber: int64(accountNumber),
 		Amount:        amount,
 	})
 	if err != nil {
@@ -122,8 +122,8 @@ func (r *AccountRepository) AddToAccountBalance(ctx context.Context, accountNumb
 	return convertToModelAccount(account), nil
 }
 
-func (r *AccountRepository) DeleteAccountByAccountNumber(ctx context.Context, accountNumber int64) error {
-	err := r.queries.DeleteAccountByAccountNumber(ctx, accountNumber)
+func (r *AccountRepository) DeleteAccountByAccountNumber(ctx context.Context, accountNumber int32) error {
+	err := r.queries.DeleteAccountByAccountNumber(ctx, int64(accountNumber))
 	if err != nil {
 		return err
 	}

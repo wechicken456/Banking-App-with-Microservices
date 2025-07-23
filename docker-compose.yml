@@ -108,7 +108,7 @@ services:
       HTTP_PORT: ${API_GATEWAY_HTTP_PORT}
       JWT_SECRET_KEY: ${JWT_SECRET_KEY}
     ports:
-      - "8080:${API_GATEWAY_HTTP_PORT}"
+      - "18000:${API_GATEWAY_HTTP_PORT}"
     networks:
       - backend
 

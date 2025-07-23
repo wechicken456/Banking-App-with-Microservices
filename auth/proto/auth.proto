@@ -11,6 +11,7 @@ service AuthService {
   rpc DeleteUser(DeleteUserRequest) returns (DeleteUserResponse) {}
   rpc Login(LoginRequest) returns (LoginResponse) {}
   rpc RenewAccessToken(RenewAccessTokenRequest) returns (RenewAccessTokenResponse) {}
+  rpc GetUserProfileById(GetUserProfileByIdRequest) returns (GetUserProfileByIdResponse) {}
 }
 
 //message fingerprint_cookieCookie {
@@ -21,6 +22,10 @@ service AuthService {
 //  bool secure = 5;
 //  string same_site = 6;
 //}
+
+message UserProfile {
+  string email = 1 [(buf.validate.field).string.email = true];
+}
 
 message CreateUserRequest {
   string email = 1 [(buf.validate.field).string.email = true];
@@ -36,8 +41,8 @@ message GetUserProfileByIdRequest {
   string user_id = 1 [(buf.validate.field).string.uuid = true];
 }
 
-message UserProfile {
-  string email = 1 [(buf.validate.field).string.email = true];
+message GetUserProfileByIdResponse {
+  UserProfile profile = 1;
 }
 
 // user_id is the ID of the user associated with the JWT token of the request validated at the API Gateway.

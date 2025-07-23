@@ -2,6 +2,7 @@
     import { api } from '$lib/services/api';
     import Button from '$lib/components/ui/Button.svelte';
     import type { Account } from '$lib/types/account';
+    import { accountStore } from '$lib/stores/account.svelte';
 
     interface Props {
         isOpen: boolean;
@@ -15,34 +16,37 @@
     let { isOpen, transactionType, account, onClose, onSuccess, accounts = [] }: Props = $props();
 
     let amount = $state<number>(0);
-    let destinationAccountNumber = $state<number>(0);
+    let destinationAccountNumber = $state<string>('');
     let isLoading = $state<boolean>(false);
     let error = $state<string | null>(null);
+
+    let modalTitle = $state<string>('');
 
     // Reset form when modal opens
     $effect(() => {
         if (isOpen) {
             amount = 0;
-            destinationAccountNumber = 0;
+            destinationAccountNumber = '';
             error = null;
         }
-    });
 
-    const modalTitle = $derived(() => {
         switch (transactionType) {
-            case 'DEPOSIT': return 'Deposit Money';
-            case 'WITHDRAWAL': return 'Withdraw Money';
-            case 'TRANSFER': return 'Transfer Money';
-            default: return 'Transaction';
-        }
-    });
-
-    const submitButtonText = $derived(() => {
-        switch (transactionType) {
-            case 'DEPOSIT': return 'Deposit';
-            case 'WITHDRAWAL': return 'Withdraw';
-            case 'TRANSFER': return 'Transfer';
-            default: return 'Submit';
+            case 'DEPOSIT': {
+                modalTitle = 'Deposit';
+                break;
+            }
+            case 'WITHDRAWAL': {
+                modalTitle = 'Withdraw';
+                break;
+            }
+            case 'TRANSFER': {
+                modalTitle = 'Transfer';
+                break;
+            }
+            default: {
+                modalTitle = 'Transaction';
+                break;
+            }
         }
     });
 
@@ -60,7 +64,7 @@
         }
 
         if (transactionType === 'TRANSFER') {
-            if (!destinationAccountNumber) {
+            if (destinationAccountNumber == '' || !destinationAccountNumber) {
                 error = 'Please select a destination account';
                 return false;
             }
@@ -87,7 +91,7 @@
             if (transactionType === 'TRANSFER') {
                 // For transfers, we'll need to call a different endpoint
                 // TODO: add transfer 
-                // await api.createTransaction({
+                // await accountStore.createTransaction({
                 //     accountId: account.accountId,
                 //     amount: -amount,
                 //     transactionType: 'TRANSFER_DEBIT'
@@ -96,11 +100,7 @@
             } else {
                 // For deposits and withdrawals
                 const transactionAmount = transactionType === 'DEPOSIT' ? amount : -amount;
-                await api.createTransaction({
-                    accountId: account.accountId,
-                    amount: transactionAmount,
-                    transactionType: transactionType
-                });
+                await accountStore.createTransaction(account.accountId, transactionAmount, transactionType);
             }
 
             onSuccess();
@@ -219,7 +219,7 @@
                             loading={isLoading}
                             disabled={isLoading}
                         >
-                            {isLoading ? 'Processing...' : `${submitButtonText} $${amount.toLocaleString()}`}
+                            {isLoading ? 'Processing...' : `${modalTitle} $${amount.toLocaleString()}`}
                         </Button>
                     </div>
                 </form>
@@ -232,7 +232,7 @@
     @reference '../../app.css';
     
     .modal-backdrop {
-        @apply fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4;
+        @apply fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4;
     }
 
     .modal-container {

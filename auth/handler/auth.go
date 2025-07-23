@@ -35,13 +35,15 @@ func (h *AuthHandler) CreateUser(ctx context.Context, req *proto.CreateUserReque
 	}, nil
 }
 
-func (h *AuthHandler) GetUserProfileById(ctx context.Context, req *proto.GetUserProfileByIdRequest) (*proto.UserProfile, error) {
+func (h *AuthHandler) GetUserProfileById(ctx context.Context, req *proto.GetUserProfileByIdRequest) (*proto.GetUserProfileByIdResponse, error) {
 	userID, err := uuid.Parse(req.UserId)
 	if err != nil {
-		return &proto.UserProfile{}, err
+		return &proto.GetUserProfileByIdResponse{}, err
 	}
 	profile, err := h.service.GetUserProfileByID(ctx, userID)
-	return utils.ConvertProfileToProtoProfile(profile), nil
+	return &proto.GetUserProfileByIdResponse{
+		Profile: utils.ConvertProfileToProtoProfile(profile),
+	}, nil
 }
 
 func (h *AuthHandler) DeleteUser(ctx context.Context, req *proto.DeleteUserRequest) (*proto.DeleteUserResponse, error) {

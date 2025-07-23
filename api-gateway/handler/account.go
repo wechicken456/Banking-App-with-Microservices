@@ -66,8 +66,10 @@ func (h *AccountHandler) CreateAccountHandler(w http.ResponseWriter, r *http.Req
 		return
 	}
 
+	resp := &model.CreateAccountResponse{AccountID: res.AccountId, AccountNumber: res.AccountNumber}
+	log.Printf("CreateAccountHandler: created account with ID %s and number %d", resp.AccountID, resp.AccountNumber)
 	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(&model.CreateAccountResponse{AccountID: res.AccountId, AccountNumber: res.AccountNumber}); err != nil {
+	if err := json.NewEncoder(w).Encode(resp); err != nil {
 		log.Printf("CreateAccountHandler: couldn't encode response: %v", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
@@ -116,6 +118,7 @@ func (h *AccountHandler) GetAccountsByUserIDHandler(w http.ResponseWriter, r *ht
 		tmp.UserID = acc.UserId
 		resp.Accounts = append(resp.Accounts, tmp)
 	}
+	log.Printf("GetAccountsByUserIDHandler: found accounts for user %s: \n%v", requestingUserID, resp.Accounts)
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(&resp); err != nil {
@@ -135,17 +138,18 @@ func (h *AccountHandler) GetAccountHandler(w http.ResponseWriter, r *http.Reques
 
 	// get account number from URL parameter
 	useId := true
-	var accountNumber int64
+	var accountNumber int32
 	u := r.URL
 	queryParams := u.Query()
 	accountID, err := uuid.Parse(queryParams.Get("accountID"))
 	if err != nil {
-		accountNumber, err = strconv.ParseInt(queryParams.Get("accountNumber"), 10, 64)
+		tmp, err := strconv.ParseInt(queryParams.Get("accountNumber"), 10, 32)
 		if err != nil {
 			log.Println("GetAccountHander: Invalid account number and account ID")
 			http.Error(w, "invalid arguments", http.StatusBadRequest)
 			return
 		}
+		accountNumber = int32(tmp)
 		useId = false
 	}
 
@@ -297,10 +301,11 @@ func (h *AccountHandler) CreateTransactionHandler(w http.ResponseWriter, r *http
 
 	// use gRPC client to call the account microservice
 	res, err := h.Client.CreateTransaction(context.Background(), &proto.CreateTransactionRequest{
-		AccountId:      accountIDBytes.String(),
-		Amount:         createTransactionReq.Amount,
-		IdempotencyKey: idempotencyKey,
-		UserId:         userIDBytes.String(),
+		AccountId:       accountIDBytes.String(),
+		Amount:          createTransactionReq.Amount,
+		TransactionType: createTransactionReq.TransactionType,
+		IdempotencyKey:  idempotencyKey,
+		UserId:          userIDBytes.String(),
 	})
 	if err != nil {
 		log.Printf("CreateTransactionHandler: %v", err)

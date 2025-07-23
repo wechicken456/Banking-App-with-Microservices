@@ -63,9 +63,8 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.728-.833-2.498 0L4.316 16.5c-.77.833.192 2.5 1.732 2.5z" />
                     </svg>
                 </div>
-hatgpt.com
                 <div class="warning-content">
-                    <h3 class="warning-title">Are you absolutely sure?</h3>
+                    <h3 class="warning-title">ARE YOU SURE?</h3>
                     <p class="warning-message">
                         This will permanently delete Account #{account.accountNumber} with a balance of ${account.balance.toLocaleString()}. 
                         This action cannot be undone and will also delete all associated transaction history.
@@ -100,7 +99,7 @@ hatgpt.com
     @reference '../../app.css';
 
     .modal-backdrop {
-        @apply fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4;
+        @apply fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4;
     }
 
     .modal-container {

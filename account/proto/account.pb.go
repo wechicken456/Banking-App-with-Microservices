@@ -25,7 +25,7 @@ const (
 type Account struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	AccountId     string                 `protobuf:"bytes,1,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`
-	AccountNumber int64                  `protobuf:"varint,2,opt,name=account_number,json=accountNumber,proto3" json:"account_number,omitempty"`
+	AccountNumber int32                  `protobuf:"varint,2,opt,name=account_number,json=accountNumber,proto3" json:"account_number,omitempty"`
 	Balance       int64                  `protobuf:"varint,3,opt,name=balance,proto3" json:"balance,omitempty"`
 	UserId        string                 `protobuf:"bytes,4,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -69,7 +69,7 @@ func (x *Account) GetAccountId() string {
 	return ""
 }
 
-func (x *Account) GetAccountNumber() int64 {
+func (x *Account) GetAccountNumber() int32 {
 	if x != nil {
 		return x.AccountNumber
 	}
@@ -246,7 +246,7 @@ func (x *CreateAccountRequest) GetIdempotencyKey() string {
 type CreateAccountResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	AccountId     string                 `protobuf:"bytes,1,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`
-	AccountNumber int64                  `protobuf:"varint,2,opt,name=account_number,json=accountNumber,proto3" json:"account_number,omitempty"`
+	AccountNumber int32                  `protobuf:"varint,2,opt,name=account_number,json=accountNumber,proto3" json:"account_number,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -288,7 +288,7 @@ func (x *CreateAccountResponse) GetAccountId() string {
 	return ""
 }
 
-func (x *CreateAccountResponse) GetAccountNumber() int64 {
+func (x *CreateAccountResponse) GetAccountNumber() int32 {
 	if x != nil {
 		return x.AccountNumber
 	}
@@ -388,7 +388,7 @@ func (x *GetAccountsByUserIdResponse) GetAccounts() []*Account {
 type GetAccountByAccountNumberRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	AccountNumber int64                  `protobuf:"varint,2,opt,name=account_number,json=accountNumber,proto3" json:"account_number,omitempty"`
+	AccountNumber int32                  `protobuf:"varint,2,opt,name=account_number,json=accountNumber,proto3" json:"account_number,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -430,7 +430,7 @@ func (x *GetAccountByAccountNumberRequest) GetUserId() string {
 	return ""
 }
 
-func (x *GetAccountByAccountNumberRequest) GetAccountNumber() int64 {
+func (x *GetAccountByAccountNumberRequest) GetAccountNumber() int32 {
 	if x != nil {
 		return x.AccountNumber
 	}
@@ -494,7 +494,7 @@ func (x *GetAccountByAccountIdRequest) GetAccountId() string {
 type DeleteAccountByAccountNumberRequest struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
 	UserId         string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	AccountNumber  int64                  `protobuf:"varint,2,opt,name=account_number,json=accountNumber,proto3" json:"account_number,omitempty"`
+	AccountNumber  int32                  `protobuf:"varint,2,opt,name=account_number,json=accountNumber,proto3" json:"account_number,omitempty"`
 	IdempotencyKey string                 `protobuf:"bytes,3,opt,name=idempotency_key,json=idempotencyKey,proto3" json:"idempotency_key,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
@@ -537,7 +537,7 @@ func (x *DeleteAccountByAccountNumberRequest) GetUserId() string {
 	return ""
 }
 
-func (x *DeleteAccountByAccountNumberRequest) GetAccountNumber() int64 {
+func (x *DeleteAccountByAccountNumberRequest) GetAccountNumber() int32 {
 	if x != nil {
 		return x.AccountNumber
 	}
@@ -825,7 +825,7 @@ func (x *GetTransactionsByAccountIdResponse) GetTransactions() []*Transaction {
 type ValidateAccountNumberRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	AccountNumber int64                  `protobuf:"varint,2,opt,name=account_number,json=accountNumber,proto3" json:"account_number,omitempty"`
+	AccountNumber int32                  `protobuf:"varint,2,opt,name=account_number,json=accountNumber,proto3" json:"account_number,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -867,7 +867,7 @@ func (x *ValidateAccountNumberRequest) GetUserId() string {
 	return ""
 }
 
-func (x *ValidateAccountNumberRequest) GetAccountNumber() int64 {
+func (x *ValidateAccountNumberRequest) GetAccountNumber() int32 {
 	if x != nil {
 		return x.AccountNumber
 	}
@@ -922,7 +922,7 @@ func (x *ValidateAccountNumberResponse) GetValid() bool {
 type HasSufficientBalanceRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	AccountNumber int64                  `protobuf:"varint,2,opt,name=account_number,json=accountNumber,proto3" json:"account_number,omitempty"`
+	AccountNumber int32                  `protobuf:"varint,2,opt,name=account_number,json=accountNumber,proto3" json:"account_number,omitempty"`
 	Amount        int64                  `protobuf:"varint,3,opt,name=amount,proto3" json:"amount,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -965,7 +965,7 @@ func (x *HasSufficientBalanceRequest) GetUserId() string {
 	return ""
 }
 
-func (x *HasSufficientBalanceRequest) GetAccountNumber() int64 {
+func (x *HasSufficientBalanceRequest) GetAccountNumber() int32 {
 	if x != nil {
 		return x.AccountNumber
 	}
@@ -1027,17 +1027,17 @@ var File_account_proto protoreflect.FileDescriptor
 
 const file_account_proto_rawDesc = "" +
 	"\n" +
-	"\raccount.proto\x12\x05proto\x1a\x1bbuf/validate/validate.proto\"\x82\x01\n" +
-	"\aAccount\x12\x1d\n" +
+	"\raccount.proto\x12\x05proto\x1a\x1bbuf/validate/validate.proto\"\x96\x01\n" +
+	"\aAccount\x12'\n" +
 	"\n" +
-	"account_id\x18\x01 \x01(\tR\taccountId\x12%\n" +
-	"\x0eaccount_number\x18\x02 \x01(\x03R\raccountNumber\x12\x18\n" +
-	"\abalance\x18\x03 \x01(\x03R\abalance\x12\x17\n" +
-	"\auser_id\x18\x04 \x01(\tR\x06userId\"\xed\x01\n" +
-	"\vTransaction\x12%\n" +
-	"\x0etransaction_id\x18\x01 \x01(\tR\rtransactionId\x12\x1d\n" +
+	"account_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\taccountId\x12%\n" +
+	"\x0eaccount_number\x18\x02 \x01(\x05R\raccountNumber\x12\x18\n" +
+	"\abalance\x18\x03 \x01(\x03R\abalance\x12!\n" +
+	"\auser_id\x18\x04 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x06userId\"\x81\x02\n" +
+	"\vTransaction\x12/\n" +
+	"\x0etransaction_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\rtransactionId\x12'\n" +
 	"\n" +
-	"account_id\x18\x02 \x01(\tR\taccountId\x12\x16\n" +
+	"account_id\x18\x02 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\taccountId\x12\x16\n" +
 	"\x06amount\x18\x03 \x01(\x03R\x06amount\x12\x1c\n" +
 	"\ttimestamp\x18\x04 \x01(\x03R\ttimestamp\x12)\n" +
 	"\x10transaction_type\x18\x05 \x01(\tR\x0ftransactionType\x12\x16\n" +
@@ -1051,21 +1051,21 @@ const file_account_proto_rawDesc = "" +
 	"\x15CreateAccountResponse\x12\x1d\n" +
 	"\n" +
 	"account_id\x18\x01 \x01(\tR\taccountId\x12%\n" +
-	"\x0eaccount_number\x18\x02 \x01(\x03R\raccountNumber\"?\n" +
+	"\x0eaccount_number\x18\x02 \x01(\x05R\raccountNumber\"?\n" +
 	"\x1aGetAccountsByUserIdRequest\x12!\n" +
 	"\auser_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x06userId\"I\n" +
 	"\x1bGetAccountsByUserIdResponse\x12*\n" +
 	"\baccounts\x18\x01 \x03(\v2\x0e.proto.AccountR\baccounts\"l\n" +
 	" GetAccountByAccountNumberRequest\x12!\n" +
 	"\auser_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x06userId\x12%\n" +
-	"\x0eaccount_number\x18\x02 \x01(\x03R\raccountNumber\"j\n" +
+	"\x0eaccount_number\x18\x02 \x01(\x05R\raccountNumber\"j\n" +
 	"\x1cGetAccountByAccountIdRequest\x12!\n" +
 	"\auser_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x06userId\x12'\n" +
 	"\n" +
 	"account_id\x18\x02 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\taccountId\"\xa2\x01\n" +
 	"#DeleteAccountByAccountNumberRequest\x12!\n" +
 	"\auser_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x06userId\x12%\n" +
-	"\x0eaccount_number\x18\x02 \x01(\x03R\raccountNumber\x121\n" +
+	"\x0eaccount_number\x18\x02 \x01(\x05R\raccountNumber\x121\n" +
 	"\x0fidempotency_key\x18\x03 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x0eidempotencyKey\"&\n" +
 	"$DeleteAccountByAccountNumberResponse\"\x95\x02\n" +
 	"\x18CreateTransactionRequest\x12!\n" +
@@ -1088,12 +1088,12 @@ const file_account_proto_rawDesc = "" +
 	"\ftransactions\x18\x01 \x03(\v2\x12.proto.TransactionR\ftransactions\"h\n" +
 	"\x1cValidateAccountNumberRequest\x12!\n" +
 	"\auser_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x06userId\x12%\n" +
-	"\x0eaccount_number\x18\x02 \x01(\x03R\raccountNumber\"5\n" +
+	"\x0eaccount_number\x18\x02 \x01(\x05R\raccountNumber\"5\n" +
 	"\x1dValidateAccountNumberResponse\x12\x14\n" +
 	"\x05valid\x18\x01 \x01(\bR\x05valid\"\x7f\n" +
 	"\x1bHasSufficientBalanceRequest\x12!\n" +
 	"\auser_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x06userId\x12%\n" +
-	"\x0eaccount_number\x18\x02 \x01(\x03R\raccountNumber\x12\x16\n" +
+	"\x0eaccount_number\x18\x02 \x01(\x05R\raccountNumber\x12\x16\n" +
 	"\x06amount\x18\x03 \x01(\x03R\x06amount\">\n" +
 	"\x1cHasSufficientBalanceResponse\x12\x1e\n" +
 	"\n" +

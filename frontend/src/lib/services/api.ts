@@ -1,9 +1,9 @@
 import type { LoginCredentials, LoginResponse, AuthTokens, User } from '$lib/types/auth';
 import type { Account, CreateTransactionRequest, Transaction } from '$lib/types/account';
 
-const API_BASE_URL = 'http://localhost:8080/api';
+const API_BASE_URL = 'http://localhost:18000/api';
 
-const PROTECTED_ENDPOINTS = ['/profile', '/all-accounts', '/account', '/delete-account', 'create-transaction', 'transactions']; 
+const PROTECTED_ENDPOINTS = ['/profile', 'create-account', '/all-accounts', '/account', '/delete-account', 'create-transaction', 'transactions'];
 function isProtectedEndpoint(endpoint: string): boolean {
     return PROTECTED_ENDPOINTS.some(protectedEndpoint => endpoint.includes(protectedEndpoint));
 }
@@ -108,38 +108,38 @@ export const api = {
         })
     },
 
-    async createAccount(balance : number): Promise<Account> {
+    async createAccount(balance: number): Promise<Account> {
         return fetchApi<Account>('/create-account', {
             method: 'POST',
             body: JSON.stringify({ balance }),
         })
     },
 
-    async getAccounts(): Promise<Account[]> {
-        return fetchApi<Account[]>('/all-accounts', {
+    async getAccounts(): Promise<{ accounts: Account[] }> {
+        return fetchApi<{ accounts: Account[] }>('/all-accounts', {
             method: 'GET',
         })
     },
 
-    async getAccount(accountNumber: number): Promise<Account> {
-        return fetchApi<Account>(`/account?accountNumber=${encodeURIComponent(accountNumber)}`, {
+    async getAccount(accountNumber: string): Promise<{account : Account}> {
+        return fetchApi<{account : Account}>(`/account?accountNumber=${encodeURIComponent(accountNumber)}`, {
             method: 'GET',
         })
     },
 
-    async deleteAccount(accountNumber: number): Promise< {success : boolean }> {
-        return fetchApi<{ success : boolean }>('/delete-account', {
+    async deleteAccount(accountNumber: string): Promise<{ success: boolean }> {
+        return fetchApi<{ success: boolean }>('/delete-account', {
             method: 'DELETE',
             body: JSON.stringify({ 'accountNumber': accountNumber })
         })
     },
 
-    async createTransaction(transaction : CreateTransactionRequest) : Promise < {transactionId : string} >{
-        return fetchApi<{transactionId : string}>('/create-transaction', {
+    async createTransaction(transaction: CreateTransactionRequest): Promise<{ transactionId: string }> {
+        return fetchApi<{ transactionId: string }>('/create-transaction', {
             method: 'POST',
             body: JSON.stringify(transaction),
         });
-    }, 
+    },
 
     async getTransactionsByAccountId(accountId: string): Promise<Transaction[]> {
         return fetchApi<Transaction[]>(`/transactions?accountId=${encodeURIComponent(accountId)}`, {

@@ -118,35 +118,69 @@ func (h *AuthHandler) CreateUserHandler(w http.ResponseWriter, r *http.Request) 
 	log.Println("CreateUserHandler: successful")
 }
 
-func (h *AuthHandler) DeleteUserHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodDelete {
+func (h *AuthHandler) GetUserProfileHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-	}
-
-	// get user id from the URL parameter
-	u := r.URL
-	queryParams := u.Query()
-	userID := queryParams.Get("userId")
-	if userID == "" {
-		http.Error(w, "Missing argument userId", http.StatusBadRequest)
 		return
 	}
 
-	// get idempotency key from header
-	idempotencyKey := r.Header.Get("Idempotency-Key")
-
-	// use gRPC client to call the auth microservice
-	_, err := h.Client.DeleteUser(context.Background(), &proto.DeleteUserRequest{
-		UserId:         userID,
-		IdempotencyKey: idempotencyKey,
+	// get the userID of the JWT access token attached to the request context which was passed down by the AuthMiddleware
+	ctx := r.Context()
+	requestingUserID := ctx.Value(middleware.UserIDContextKey).(string)
+	if requestingUserID == "" {
+		msg := "Missing bearer token"
+		http.Error(w, msg, http.StatusUnauthorized)
+		return
+	}
+	res, err := h.Client.GetUserProfileById(context.Background(), &proto.GetUserProfileByIdRequest{
+		UserId: requestingUserID,
 	})
 	if err != nil {
 		utils.WriteGRPCErrorToHTTP(w, err)
 		return
 	}
 
-	log.Println("DeleteUserHandler: successful")
+	profile := &model.UserProfile{
+		Email: res.Profile.Email,
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(profile); err != nil {
+		log.Printf("GetUserProfileById: %v\n", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+	log.Println("GetUserProfileById: successful")
 }
+
+//func (h *AuthHandler) DeleteUserHandler(w http.ResponseWriter, r *http.Request) {
+//	if r.Method != http.MethodDelete {
+//		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+//	}
+//
+//	// get user id from the URL parameter
+//	u := r.URL
+//	queryParams := u.Query()
+//	userID := queryParams.Get("userId")
+//	if userID == "" {
+//		http.Error(w, "Missing argument userId", http.StatusBadRequest)
+//		return
+//	}
+//
+//	// get idempotency key from header
+//	idempotencyKey := r.Header.Get("Idempotency-Key")
+//
+//	// use gRPC client to call the auth microservice
+//	_, err := h.Client.DeleteUser(context.Background(), &proto.DeleteUserRequest{
+//		UserId:         userID,
+//		IdempotencyKey: idempotencyKey,
+//	})
+//	if err != nil {
+//		utils.WriteGRPCErrorToHTTP(w, err)
+//		return
+//	}
+//
+//	log.Println("DeleteUserHandler: successful")
+//}
 
 // Return a new JWT access token
 // Requires the current JWT access token, and the refreshToken cookie
@@ -170,7 +204,7 @@ func (h *AuthHandler) RenewAccessTokenHandler(w http.ResponseWriter, r *http.Req
 	// get idempotency key from header
 	idempotencyKey := r.Header.Get("Idempotency-Key")
 
-	// get the userID of the JWT access token attached to the request context which was passwd down by the AuthMiddleware
+	// get the userID of the JWT access token attached to the request context which was passed down by the AuthMiddleware
 	ctx := r.Context()
 	requestingUserID := ctx.Value(middleware.UserIDContextKey).(string)
 	if requestingUserID == "" {

@@ -42,8 +42,8 @@ func RandomUser() *model.User {
 	}
 }
 
-func RandomAccountNumber() int64 {
-	return int64(RandMinMax(1_000_000_000, 1_000_000_000_000_000_000))
+func RandomAccountNumber() int32 {
+	return int32(RandMinMax(1_000_000_000, 2_000_999_999))
 }
 
 func RandomAccount() *model.Account {

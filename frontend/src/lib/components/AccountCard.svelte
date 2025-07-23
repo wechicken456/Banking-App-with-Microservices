@@ -4,7 +4,7 @@
     interface Props {
         account: Account;
         recentTransactions: Transaction[];
-        onAccountClick: (accountNumber: number) => void;
+        onAccountClick: (accountNumber: string) => void;
         formatBalance: (balance: number) => string;
         formatDate: (timestamp: number) => string;
     }

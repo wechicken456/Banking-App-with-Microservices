@@ -161,7 +161,7 @@ func (s *AccountService) GetAccountsByUserID(ctx context.Context, userID uuid.UU
 	return accounts, nil
 }
 
-func (s *AccountService) GetAccountByAccountNumber(ctx context.Context, accountNumber int64, userID uuid.UUID) (*model.Account, error) {
+func (s *AccountService) GetAccountByAccountNumber(ctx context.Context, accountNumber int32, userID uuid.UUID) (*model.Account, error) {
 	account, err := s.repo.GetAccountByAccountNumber(ctx, accountNumber)
 	if err != nil {
 		log.Printf("GetAccountByAccountNumber: Failed to get account: %v\n", err)
@@ -183,7 +183,7 @@ func (s *AccountService) GetAccountByAccountNumber(ctx context.Context, accountN
 
 // delete account by account number with exponential backoff retries
 // userID is the ID of the user who initiated the request
-func (s *AccountService) DeleteAccountByAccountNumber(ctx context.Context, accountNumber int64, idempotencyKey string, userID uuid.UUID) error {
+func (s *AccountService) DeleteAccountByAccountNumber(ctx context.Context, accountNumber int32, idempotencyKey string, userID uuid.UUID) error {
 	var (
 		attempt int
 		backoff int
@@ -212,7 +212,7 @@ func (s *AccountService) DeleteAccountByAccountNumber(ctx context.Context, accou
 
 // use serializable isolation level for the transaction
 // userID is the ID of the user who initiated the request
-func (s *AccountService) deleteAccountByAccountNumberTx(ctx context.Context, accountNumber int64, idempotencyKey string, userID uuid.UUID) error {
+func (s *AccountService) deleteAccountByAccountNumberTx(ctx context.Context, accountNumber int32, idempotencyKey string, userID uuid.UUID) error {
 	var (
 		tx      *sql.Tx
 		err     error
@@ -488,7 +488,7 @@ func (s *AccountService) createTransactionTx(ctx context.Context, transaction *m
 // // AddToAccountBalance adds the given amount (could be negative) to the account balance and retries on serialization failure
 // // with exponential backoff. It returns the updated account.
 // // userID is the ID of the user who initiated the request
-// func (s *AccountService) AddToAccountBalance(ctx context.Context, accountNumber int64, amount int64, idempotencyKey string, userID uuid.UUID) (*model.Account, error) {
+// func (s *AccountService) AddToAccountBalance(ctx context.Context, accountNumber int32, amount int64, idempotencyKey string, userID uuid.UUID) (*model.Account, error) {
 // 	var (
 // 		err error
 // 		res *model.Account
@@ -511,7 +511,7 @@ func (s *AccountService) createTransactionTx(ctx context.Context, transaction *m
 // }
 
 // // userID is the ID of the user who initiated the request
-// func (s *AccountService) addToAccountBalanceTx(ctx context.Context, accountNumber int64, amount int64, idempotencyKey string, userID uuid.UUID) (*model.Account, error) {
+// func (s *AccountService) addToAccountBalanceTx(ctx context.Context, accountNumber int32, amount int64, idempotencyKey string, userID uuid.UUID) (*model.Account, error) {
 // 	var (
 // 		tx             *sql.Tx
 // 		err            error
@@ -629,7 +629,7 @@ func (s *AccountService) GetTransactionsByAccountID(ctx context.Context, account
 
 // Check if an account exists and belongs to the given user
 // userID is the ID of the user who initiated the request
-func (s *AccountService) ValidateAccountNumber(ctx context.Context, accountNumber int64, userID uuid.UUID) (bool, error) {
+func (s *AccountService) ValidateAccountNumber(ctx context.Context, accountNumber int32, userID uuid.UUID) (bool, error) {
 	account, err := s.repo.GetAccountByAccountNumber(ctx, accountNumber)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -649,7 +649,7 @@ func (s *AccountService) ValidateAccountNumber(ctx context.Context, accountNumbe
 
 // Function to check if account has sufficient balance and belongs to the user
 // userID is the ID of the user who initiated the request
-func (s *AccountService) HasSufficientBalance(ctx context.Context, accountNumber int64, amount int64, userID uuid.UUID) (bool, error) {
+func (s *AccountService) HasSufficientBalance(ctx context.Context, accountNumber int32, amount int64, userID uuid.UUID) (bool, error) {
 	account, err := s.repo.GetAccountByAccountNumber(ctx, accountNumber)
 	if err != nil {
 		log.Printf("HasSufficientBalance: Failed to get account: %v\n", err)

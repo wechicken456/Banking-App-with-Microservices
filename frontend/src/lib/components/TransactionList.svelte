@@ -3,7 +3,7 @@
 
     interface Props {
         transactions: Transaction[];
-        getAccountNumber: (accountId: string) => number | undefined;
+        getAccountNumber: (accountId: string) => string | undefined;
         formatBalance: (balance: number) => string;
         formatDate: (timestamp: number) => string;
     }

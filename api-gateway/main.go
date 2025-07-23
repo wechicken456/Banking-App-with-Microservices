@@ -55,7 +55,8 @@ func main() {
 
 			// TODO: add more routes to microservices
 			// user management
-			r.Delete("/delete-user", authHandler.DeleteUserHandler)
+			r.Get("/profile", authHandler.GetUserProfileHandler)
+			// r.Delete("/delete-user", authHandler.DeleteUserHandler)
 			r.Post("/renew-token", authHandler.RenewAccessTokenHandler)
 			// account management
 			r.Get("/all-accounts", accountHandler.GetAccountsByUserIDHandler)

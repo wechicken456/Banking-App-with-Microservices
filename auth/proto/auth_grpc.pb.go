@@ -19,10 +19,11 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	AuthService_CreateUser_FullMethodName       = "/proto.AuthService/CreateUser"
-	AuthService_DeleteUser_FullMethodName       = "/proto.AuthService/DeleteUser"
-	AuthService_Login_FullMethodName            = "/proto.AuthService/Login"
-	AuthService_RenewAccessToken_FullMethodName = "/proto.AuthService/RenewAccessToken"
+	AuthService_CreateUser_FullMethodName         = "/proto.AuthService/CreateUser"
+	AuthService_DeleteUser_FullMethodName         = "/proto.AuthService/DeleteUser"
+	AuthService_Login_FullMethodName              = "/proto.AuthService/Login"
+	AuthService_RenewAccessToken_FullMethodName   = "/proto.AuthService/RenewAccessToken"
+	AuthService_GetUserProfileById_FullMethodName = "/proto.AuthService/GetUserProfileById"
 )
 
 // AuthServiceClient is the client API for AuthService service.
@@ -33,6 +34,7 @@ type AuthServiceClient interface {
 	DeleteUser(ctx context.Context, in *DeleteUserRequest, opts ...grpc.CallOption) (*DeleteUserResponse, error)
 	Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*LoginResponse, error)
 	RenewAccessToken(ctx context.Context, in *RenewAccessTokenRequest, opts ...grpc.CallOption) (*RenewAccessTokenResponse, error)
+	GetUserProfileById(ctx context.Context, in *GetUserProfileByIdRequest, opts ...grpc.CallOption) (*GetUserProfileByIdResponse, error)
 }
 
 type authServiceClient struct {
@@ -83,6 +85,16 @@ func (c *authServiceClient) RenewAccessToken(ctx context.Context, in *RenewAcces
 	return out, nil
 }
 
+func (c *authServiceClient) GetUserProfileById(ctx context.Context, in *GetUserProfileByIdRequest, opts ...grpc.CallOption) (*GetUserProfileByIdResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetUserProfileByIdResponse)
+	err := c.cc.Invoke(ctx, AuthService_GetUserProfileById_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AuthServiceServer is the server API for AuthService service.
 // All implementations must embed UnimplementedAuthServiceServer
 // for forward compatibility.
@@ -91,6 +103,7 @@ type AuthServiceServer interface {
 	DeleteUser(context.Context, *DeleteUserRequest) (*DeleteUserResponse, error)
 	Login(context.Context, *LoginRequest) (*LoginResponse, error)
 	RenewAccessToken(context.Context, *RenewAccessTokenRequest) (*RenewAccessTokenResponse, error)
+	GetUserProfileById(context.Context, *GetUserProfileByIdRequest) (*GetUserProfileByIdResponse, error)
 	mustEmbedUnimplementedAuthServiceServer()
 }
 
@@ -112,6 +125,9 @@ func (UnimplementedAuthServiceServer) Login(context.Context, *LoginRequest) (*Lo
 }
 func (UnimplementedAuthServiceServer) RenewAccessToken(context.Context, *RenewAccessTokenRequest) (*RenewAccessTokenResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RenewAccessToken not implemented")
+}
+func (UnimplementedAuthServiceServer) GetUserProfileById(context.Context, *GetUserProfileByIdRequest) (*GetUserProfileByIdResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetUserProfileById not implemented")
 }
 func (UnimplementedAuthServiceServer) mustEmbedUnimplementedAuthServiceServer() {}
 func (UnimplementedAuthServiceServer) testEmbeddedByValue()                     {}
@@ -206,6 +222,24 @@ func _AuthService_RenewAccessToken_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AuthService_GetUserProfileById_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetUserProfileByIdRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).GetUserProfileById(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_GetUserProfileById_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).GetUserProfileById(ctx, req.(*GetUserProfileByIdRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AuthService_ServiceDesc is the grpc.ServiceDesc for AuthService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -228,6 +262,10 @@ var AuthService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RenewAccessToken",
 			Handler:    _AuthService_RenewAccessToken_Handler,
+		},
+		{
+			MethodName: "GetUserProfileById",
+			Handler:    _AuthService_GetUserProfileById_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

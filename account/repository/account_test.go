@@ -203,7 +203,7 @@ func TestDeleteAccountByAccountNumber_Success(t *testing.T) {
 	createdAccount, err = txRepo.CreateAccount(context.Background(), user)
 	require.NoError(t, err)
 
-	err = txRepo.queries.DeleteAccountByAccountNumber(context.Background(), createdAccount.AccountNumber)
+	err = txRepo.queries.DeleteAccountByAccountNumber(context.Background(), int64(createdAccount.AccountNumber))
 	require.NoError(t, err)
 
 	res, err := repo.GetAccountByAccountNumber(context.Background(), createdAccount.AccountNumber)
@@ -318,7 +318,7 @@ func TestCreateMultipleTransactions_Success(t *testing.T) {
 			return
 		}
 	}
-	err = txRepo.queries.DeleteAccountByAccountNumber(context.Background(), createdAccount.AccountNumber)
+	err = txRepo.queries.DeleteAccountByAccountNumber(context.Background(), int64(createdAccount.AccountNumber))
 	require.NoError(t, err)
 	err = tx.Commit()
 	require.NoError(t, err)

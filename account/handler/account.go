@@ -35,7 +35,7 @@ func (h *AccountHandler) CreateAccount(ctx context.Context, req *proto.CreateAcc
 		log.Printf("gRPC CreateAccount: Failed to create account: %v\n", err)
 		return nil, err
 	}
-
+	log.Printf("Created account: %v\n", account)
 	return &proto.CreateAccountResponse{
 		AccountId:     account.AccountID.String(),
 		AccountNumber: account.AccountNumber,
@@ -163,6 +163,8 @@ func (h *AccountHandler) CreateTransaction(ctx context.Context, req *proto.Creat
 		Status:          "PENDING",
 		TransferID:      transferID,
 	}
+
+	
 
 	createdTransaction, err := h.service.CreateTransaction(ctx, transaction, req.IdempotencyKey, userID)
 	if err != nil {
