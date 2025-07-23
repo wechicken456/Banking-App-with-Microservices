@@ -1,9 +1,9 @@
 import type { LoginCredentials, LoginResponse, AuthTokens, User } from '$lib/types/auth';
-import type { Account } from '$lib/types/account';
+import type { Account, CreateTransactionRequest, Transaction } from '$lib/types/account';
 
 const API_BASE_URL = 'http://localhost:8080/api';
 
-const PROTECTED_ENDPOINTS = ['/profile', '/get-all-accounts', '/get-account', '/delete-account']; 
+const PROTECTED_ENDPOINTS = ['/profile', '/all-accounts', '/account', '/delete-account', 'create-transaction', 'transactions']; 
 function isProtectedEndpoint(endpoint: string): boolean {
     return PROTECTED_ENDPOINTS.some(protectedEndpoint => endpoint.includes(protectedEndpoint));
 }
@@ -108,14 +108,21 @@ export const api = {
         })
     },
 
+    async createAccount(balance : number): Promise<Account> {
+        return fetchApi<Account>('/create-account', {
+            method: 'POST',
+            body: JSON.stringify({ balance }),
+        })
+    },
+
     async getAccounts(): Promise<Account[]> {
-        return fetchApi<Account[]>('/get-all-accounts', {
+        return fetchApi<Account[]>('/all-accounts', {
             method: 'GET',
         })
     },
 
-    async getAccount(accountNumber: number): Promise<Account[]> {
-        return fetchApi<Account[]>(`/get-account?accountNumber=${encodeURIComponent(accountNumber)}`, {
+    async getAccount(accountNumber: number): Promise<Account> {
+        return fetchApi<Account>(`/account?accountNumber=${encodeURIComponent(accountNumber)}`, {
             method: 'GET',
         })
     },
@@ -126,6 +133,19 @@ export const api = {
             body: JSON.stringify({ 'accountNumber': accountNumber })
         })
     },
+
+    async createTransaction(transaction : CreateTransactionRequest) : Promise < {transactionId : string} >{
+        return fetchApi<{transactionId : string}>('/create-transaction', {
+            method: 'POST',
+            body: JSON.stringify(transaction),
+        });
+    }, 
+
+    async getTransactionsByAccountId(accountId: string): Promise<Transaction[]> {
+        return fetchApi<Transaction[]>(`/transactions?accountId=${encodeURIComponent(accountId)}`, {
+            method: 'GET',
+        });
+    }
 };
 
 export { ApiError };

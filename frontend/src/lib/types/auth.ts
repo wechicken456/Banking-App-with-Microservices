@@ -18,7 +18,7 @@ export interface LoginResponse {
     email: string;
     accessToken: string; 
     refreshToken: string;
-    accessTokenDuration: number; // in seconds
+c    accessTokenDuration: number; // in seconds
     refreshTokenDuration: number; // in seconds
 }
 

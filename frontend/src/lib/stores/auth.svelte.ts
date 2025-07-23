@@ -1,6 +1,6 @@
 import { browser } from '$app/environment';
 import { goto } from '$app/navigation';
-import type { User, AuthTokens} from '$lib/types/auth';
+import type { User, AuthTokens } from '$lib/types/auth';
 import { api } from '$lib/services/api';
 
 class AuthStore {
@@ -14,7 +14,7 @@ class AuthStore {
         if (browser) {
             this.checkAuth();
             // set the token provider for protected API calls
-            api.setTokenProvider({  
+            api.setTokenProvider({
                 getAccessToken: () => this.getAccessToken(),
             });
         }
@@ -66,7 +66,7 @@ class AuthStore {
         }
     }
 
-    private getTokens() : AuthTokens | null {
+    private getTokens(): AuthTokens | null {
         const accessToken = this.getAccessToken();
         if (!accessToken) {
             console.warn('No access token found, cannot renew');
@@ -91,16 +91,16 @@ class AuthStore {
 
             this.setAccessToken(response.accessToken);
             this.setRefreshToken(response.refreshToken);
-            
-            this.user = {id: response.userId, email: response.email};
+
+            this.user = { id: response.userId, email: response.email };
 
             goto('/dashboard');
             return { success: true };
         } catch (error) {
             console.error('Login failed:', error);
-            return { 
-                success: false, 
-                error: error instanceof Error ? error.message : 'Login failed' 
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : 'Login failed'
             };
         } finally {
             this.isLoading = false;
@@ -114,13 +114,13 @@ class AuthStore {
 
         try {
             this.isLoading = true;
-            await api.register({ email, password});
+            await api.register({ email, password });
             return { success: true };
         } catch (error) {
             console.error('Registration failed:', error);
-            return { 
-                success: false, 
-                error: error instanceof Error ? error.message : 'Registration failed' 
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : 'Registration failed'
             };
         } finally {
             this.isLoading = false;
@@ -144,7 +144,7 @@ class AuthStore {
             const tokens = this.getTokens();
             if (tokens === null) {
                 console.warn('One of access token, refresh token, or fingerprint is missing, cannot renew');
-                return false;    
+                return false;
             }
             await api.renewToken(tokens);
             // Token is renewed via cookies, no need to handle response
