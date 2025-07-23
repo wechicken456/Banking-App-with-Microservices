@@ -6,8 +6,6 @@ import (
 	"auth/proto"
 	"auth/repository"
 	"auth/service"
-	"crypto/rand"
-	"encoding/base64"
 	"fmt"
 	"log"
 	"net"
@@ -35,15 +33,16 @@ func main() {
 	}
 
 	// Set JWT secret key
-	jwtSecretKey := make([]byte, 32)
-	_, err := rand.Read(jwtSecretKey)
-	if err != nil {
-		log.Fatalf("failed to generate JWT secret key: %w", err)
-	}
-	os.Setenv("JWT_SECRET_KEY", base64.StdEncoding.EncodeToString(jwtSecretKey))
+	//jwtSecretKey := make([]byte, 32)
+	//_, err := rand.Read(jwtSecretKey)
+	//if err != nil {
+	//	log.Fatalf("failed to generate JWT secret key: %w", err)
+	//}
+	//os.Setenv("JWT_SECRET_KEY", base64.StdEncoding.EncodeToString(jwtSecretKey))
 
 	_port := os.Getenv("GRPC_PORT")
 	var port int
+	var err error
 	if port, err = strconv.Atoi(_port); err != nil {
 		port = 50001
 	}

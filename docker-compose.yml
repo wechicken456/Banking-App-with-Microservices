@@ -73,6 +73,7 @@ services:
       AUTH_DB_USER: ${AUTH_DB_USER}
       AUTH_DB_PASSWORD: ${AUTH_DB_PASSWORD}
       AUTH_DB_NAME: ${AUTH_DB_NAME}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
     ports:
       - "${AUTH_GRPC_PORT}:${AUTH_GRPC_PORT}"
     networks:
@@ -105,6 +106,7 @@ services:
       ACCOUNT_SERVICE_URL: "account-service:${ACCOUNT_GRPC_PORT}"
       TRANSFER_SERVICE_URL: "transfer-service:${TRANSFER_GRPC_PORT}"
       HTTP_PORT: ${API_GATEWAY_HTTP_PORT}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
     ports:
       - "8080:${API_GATEWAY_HTTP_PORT}"
     networks:

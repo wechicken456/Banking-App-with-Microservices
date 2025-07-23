@@ -10,7 +10,7 @@ import (
 )
 
 type User struct {
-	UserID   uuid.UUID `json:"user_id"`
+	UserID   uuid.UUID `json:"userId"`
 	Email    string    `json:"email"`
 	Password string    `json:"password"`
 }
@@ -43,31 +43,31 @@ type AccessToken struct {
 type TokenCookie struct {
 	Name          string `json:"name"`
 	Value         string `json:"value"` // this will be the RAW refresh token string
-	MaxAgeSeconds int64  `json:"max_age_seconds"`
-	HttpOnly      bool   `json:"http_only"`
+	MaxAgeSeconds int64  `json:"maxAgeSeconds"`
+	HttpOnly      bool   `json:"httpOnly"`
 	Secure        bool   `json:"secure"`
-	SameSite      string `json:"same_site"`
+	SameSite      string `json:"sameSite"`
 }
 
 type LoginResult struct {
-	AccessToken          string    `json:"access_token"`
-	UserID               uuid.UUID `json:"user_id"`
+	AccessToken          string    `json:"accessToken"`
+	UserID               uuid.UUID `json:"userId"`
 	Fingerprint          string    `json:"fingerprint"`
-	RefreshToken         string    `json:"refresh_token"`
-	AccessTokenDuration  int       `json:"access_token_duration"`  // seconds
-	RefreshTokenDuration int       `json:"refresh_token_duration"` // seconds
+	RefreshToken         string    `json:"refreshToken"`
+	AccessTokenDuration  int       `json:"accessTokenDuration"`  // seconds
+	RefreshTokenDuration int       `json:"refreshTokenDuration"` // seconds
 }
 
 type JWTClaim struct {
 	jwt.RegisteredClaims
-	FingerprintHash string `json:"fp_hash"`
+	FingerprintHash string `json:"fpHash"`
 }
 
 type IdempotencyKey struct {
 	KeyID string `json:"key_id"`
 
 	Status          string `json:"status"`
-	ResponseMessage string `json:"response_body"`
+	ResponseMessage string `json:"responseBody"`
 }
 
 var (
@@ -83,5 +83,5 @@ var (
 	TokenAbsoluteDuration  time.Duration = 4 * time.Hour
 	RefreshTokenDuration   time.Duration = 24 * time.Hour
 	FingerprintCookieName  string        = "fingerprint"
-	RefreshTokenCookieName string        = "refresh_token"
+	RefreshTokenCookieName string        = "refreshToken"
 )
