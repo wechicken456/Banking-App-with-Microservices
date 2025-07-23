@@ -42,7 +42,7 @@ func (h *AccountHandler) CreateAccount(ctx context.Context, req *proto.CreateAcc
 	}, nil
 }
 
-func (h *AccountHandler) GetAccountsByUserID(ctx context.Context, req *proto.GetAccountsByUserIdRequest) (*proto.GetAccountsByUserIdResponse, error) {
+func (h *AccountHandler) GetAccountsByUserId(ctx context.Context, req *proto.GetAccountsByUserIdRequest) (*proto.GetAccountsByUserIdResponse, error) {
 	userID, err := uuid.Parse(req.UserId)
 	if err != nil {
 		log.Printf("gRPC GetAccountsByUserID: Failed to parse user ID: %v\n", err)
@@ -70,7 +70,7 @@ func (h *AccountHandler) GetAccountsByUserID(ctx context.Context, req *proto.Get
 	}, nil
 }
 
-func (h *AccountHandler) GetAccountByAccountNumber(ctx context.Context, req *proto.GetAccountByAccountNumberRequest) (*proto.GetAccountByAccountNumberResponse, error) {
+func (h *AccountHandler) GetAccountByAccountNumber(ctx context.Context, req *proto.GetAccountByAccountNumberRequest) (*proto.Account, error) {
 	userID, err := uuid.Parse(req.UserId)
 	if err != nil {
 		log.Printf("gRPC GetAccountByAccountNumber: Failed to parse user ID: %v\n", err)
@@ -83,13 +83,38 @@ func (h *AccountHandler) GetAccountByAccountNumber(ctx context.Context, req *pro
 		return nil, err
 	}
 
-	return &proto.GetAccountByAccountNumberResponse{
-		Account: &proto.Account{
-			AccountId:     account.AccountID.String(),
-			AccountNumber: account.AccountNumber,
-			Balance:       account.Balance,
-			UserId:        account.UserID.String(),
-		},
+	return &proto.Account{
+		AccountId:     account.AccountID.String(),
+		AccountNumber: account.AccountNumber,
+		Balance:       account.Balance,
+		UserId:        account.UserID.String(),
+	}, nil
+}
+
+func (h *AccountHandler) GetAccountByAccountId(ctx context.Context, req *proto.GetAccountByAccountIdRequest) (*proto.Account, error) {
+	userID, err := uuid.Parse(req.UserId)
+	if err != nil {
+		log.Printf("gRPC GetAccountByAccountNumber: Failed to parse user ID: %v\n", err)
+		return nil, model.ErrInvalidArgument
+	}
+
+	accountID, err := uuid.Parse(req.AccountId)
+	if err != nil {
+		log.Printf("gRPC GetAccountByAccountId: Failed to parse account ID: %v\n", err)
+		return nil, model.ErrInvalidArgument
+	}
+
+	account, err := h.service.GetAccount(ctx, accountID, userID)
+	if err != nil {
+		log.Printf("gRPC GetAccountByAccountNumber: Failed to get account: %v\n", err)
+		return nil, err
+	}
+
+	return &proto.Account{
+		AccountId:     account.AccountID.String(),
+		AccountNumber: account.AccountNumber,
+		Balance:       account.Balance,
+		UserId:        account.UserID.String(),
 	}, nil
 }
 

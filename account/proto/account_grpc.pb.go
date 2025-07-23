@@ -22,6 +22,7 @@ const (
 	AccountService_CreateAccount_FullMethodName                = "/proto.AccountService/CreateAccount"
 	AccountService_GetAccountsByUserId_FullMethodName          = "/proto.AccountService/GetAccountsByUserId"
 	AccountService_GetAccountByAccountNumber_FullMethodName    = "/proto.AccountService/GetAccountByAccountNumber"
+	AccountService_GetAccountByAccountId_FullMethodName        = "/proto.AccountService/GetAccountByAccountId"
 	AccountService_DeleteAccountByAccountNumber_FullMethodName = "/proto.AccountService/DeleteAccountByAccountNumber"
 	AccountService_CreateTransaction_FullMethodName            = "/proto.AccountService/CreateTransaction"
 	AccountService_GetTransactionsByAccountId_FullMethodName   = "/proto.AccountService/GetTransactionsByAccountId"
@@ -35,7 +36,8 @@ const (
 type AccountServiceClient interface {
 	CreateAccount(ctx context.Context, in *CreateAccountRequest, opts ...grpc.CallOption) (*CreateAccountResponse, error)
 	GetAccountsByUserId(ctx context.Context, in *GetAccountsByUserIdRequest, opts ...grpc.CallOption) (*GetAccountsByUserIdResponse, error)
-	GetAccountByAccountNumber(ctx context.Context, in *GetAccountByAccountNumberRequest, opts ...grpc.CallOption) (*GetAccountByAccountNumberResponse, error)
+	GetAccountByAccountNumber(ctx context.Context, in *GetAccountByAccountNumberRequest, opts ...grpc.CallOption) (*Account, error)
+	GetAccountByAccountId(ctx context.Context, in *GetAccountByAccountIdRequest, opts ...grpc.CallOption) (*Account, error)
 	DeleteAccountByAccountNumber(ctx context.Context, in *DeleteAccountByAccountNumberRequest, opts ...grpc.CallOption) (*DeleteAccountByAccountNumberResponse, error)
 	CreateTransaction(ctx context.Context, in *CreateTransactionRequest, opts ...grpc.CallOption) (*CreateTransactionResponse, error)
 	GetTransactionsByAccountId(ctx context.Context, in *GetTransactionsByAccountIdRequest, opts ...grpc.CallOption) (*GetTransactionsByAccountIdResponse, error)
@@ -71,10 +73,20 @@ func (c *accountServiceClient) GetAccountsByUserId(ctx context.Context, in *GetA
 	return out, nil
 }
 
-func (c *accountServiceClient) GetAccountByAccountNumber(ctx context.Context, in *GetAccountByAccountNumberRequest, opts ...grpc.CallOption) (*GetAccountByAccountNumberResponse, error) {
+func (c *accountServiceClient) GetAccountByAccountNumber(ctx context.Context, in *GetAccountByAccountNumberRequest, opts ...grpc.CallOption) (*Account, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetAccountByAccountNumberResponse)
+	out := new(Account)
 	err := c.cc.Invoke(ctx, AccountService_GetAccountByAccountNumber_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *accountServiceClient) GetAccountByAccountId(ctx context.Context, in *GetAccountByAccountIdRequest, opts ...grpc.CallOption) (*Account, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Account)
+	err := c.cc.Invoke(ctx, AccountService_GetAccountByAccountId_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -137,7 +149,8 @@ func (c *accountServiceClient) HasSufficientBalance(ctx context.Context, in *Has
 type AccountServiceServer interface {
 	CreateAccount(context.Context, *CreateAccountRequest) (*CreateAccountResponse, error)
 	GetAccountsByUserId(context.Context, *GetAccountsByUserIdRequest) (*GetAccountsByUserIdResponse, error)
-	GetAccountByAccountNumber(context.Context, *GetAccountByAccountNumberRequest) (*GetAccountByAccountNumberResponse, error)
+	GetAccountByAccountNumber(context.Context, *GetAccountByAccountNumberRequest) (*Account, error)
+	GetAccountByAccountId(context.Context, *GetAccountByAccountIdRequest) (*Account, error)
 	DeleteAccountByAccountNumber(context.Context, *DeleteAccountByAccountNumberRequest) (*DeleteAccountByAccountNumberResponse, error)
 	CreateTransaction(context.Context, *CreateTransactionRequest) (*CreateTransactionResponse, error)
 	GetTransactionsByAccountId(context.Context, *GetTransactionsByAccountIdRequest) (*GetTransactionsByAccountIdResponse, error)
@@ -159,8 +172,11 @@ func (UnimplementedAccountServiceServer) CreateAccount(context.Context, *CreateA
 func (UnimplementedAccountServiceServer) GetAccountsByUserId(context.Context, *GetAccountsByUserIdRequest) (*GetAccountsByUserIdResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetAccountsByUserId not implemented")
 }
-func (UnimplementedAccountServiceServer) GetAccountByAccountNumber(context.Context, *GetAccountByAccountNumberRequest) (*GetAccountByAccountNumberResponse, error) {
+func (UnimplementedAccountServiceServer) GetAccountByAccountNumber(context.Context, *GetAccountByAccountNumberRequest) (*Account, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetAccountByAccountNumber not implemented")
+}
+func (UnimplementedAccountServiceServer) GetAccountByAccountId(context.Context, *GetAccountByAccountIdRequest) (*Account, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetAccountByAccountId not implemented")
 }
 func (UnimplementedAccountServiceServer) DeleteAccountByAccountNumber(context.Context, *DeleteAccountByAccountNumberRequest) (*DeleteAccountByAccountNumberResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteAccountByAccountNumber not implemented")
@@ -248,6 +264,24 @@ func _AccountService_GetAccountByAccountNumber_Handler(srv interface{}, ctx cont
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(AccountServiceServer).GetAccountByAccountNumber(ctx, req.(*GetAccountByAccountNumberRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AccountService_GetAccountByAccountId_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetAccountByAccountIdRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AccountServiceServer).GetAccountByAccountId(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AccountService_GetAccountByAccountId_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AccountServiceServer).GetAccountByAccountId(ctx, req.(*GetAccountByAccountIdRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -360,6 +394,10 @@ var AccountService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetAccountByAccountNumber",
 			Handler:    _AccountService_GetAccountByAccountNumber_Handler,
+		},
+		{
+			MethodName: "GetAccountByAccountId",
+			Handler:    _AccountService_GetAccountByAccountId_Handler,
 		},
 		{
 			MethodName: "DeleteAccountByAccountNumber",

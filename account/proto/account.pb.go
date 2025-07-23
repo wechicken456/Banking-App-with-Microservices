@@ -437,27 +437,29 @@ func (x *GetAccountByAccountNumberRequest) GetAccountNumber() int64 {
 	return 0
 }
 
-type GetAccountByAccountNumberResponse struct {
+// user_id is the ID of the user associated with the JWT token validated at the API Gateway
+type GetAccountByAccountIdRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Account       *Account               `protobuf:"bytes,1,opt,name=account,proto3" json:"account,omitempty"`
+	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	AccountId     string                 `protobuf:"bytes,2,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *GetAccountByAccountNumberResponse) Reset() {
-	*x = GetAccountByAccountNumberResponse{}
+func (x *GetAccountByAccountIdRequest) Reset() {
+	*x = GetAccountByAccountIdRequest{}
 	mi := &file_account_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *GetAccountByAccountNumberResponse) String() string {
+func (x *GetAccountByAccountIdRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*GetAccountByAccountNumberResponse) ProtoMessage() {}
+func (*GetAccountByAccountIdRequest) ProtoMessage() {}
 
-func (x *GetAccountByAccountNumberResponse) ProtoReflect() protoreflect.Message {
+func (x *GetAccountByAccountIdRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_account_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -469,16 +471,23 @@ func (x *GetAccountByAccountNumberResponse) ProtoReflect() protoreflect.Message 
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GetAccountByAccountNumberResponse.ProtoReflect.Descriptor instead.
-func (*GetAccountByAccountNumberResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use GetAccountByAccountIdRequest.ProtoReflect.Descriptor instead.
+func (*GetAccountByAccountIdRequest) Descriptor() ([]byte, []int) {
 	return file_account_proto_rawDescGZIP(), []int{7}
 }
 
-func (x *GetAccountByAccountNumberResponse) GetAccount() *Account {
+func (x *GetAccountByAccountIdRequest) GetUserId() string {
 	if x != nil {
-		return x.Account
+		return x.UserId
 	}
-	return nil
+	return ""
+}
+
+func (x *GetAccountByAccountIdRequest) GetAccountId() string {
+	if x != nil {
+		return x.AccountId
+	}
+	return ""
 }
 
 // user_id is the ID of the user associated with the JWT token validated at the API Gateway
@@ -1049,9 +1058,11 @@ const file_account_proto_rawDesc = "" +
 	"\baccounts\x18\x01 \x03(\v2\x0e.proto.AccountR\baccounts\"l\n" +
 	" GetAccountByAccountNumberRequest\x12!\n" +
 	"\auser_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x06userId\x12%\n" +
-	"\x0eaccount_number\x18\x02 \x01(\x03R\raccountNumber\"M\n" +
-	"!GetAccountByAccountNumberResponse\x12(\n" +
-	"\aaccount\x18\x01 \x01(\v2\x0e.proto.AccountR\aaccount\"\xa2\x01\n" +
+	"\x0eaccount_number\x18\x02 \x01(\x03R\raccountNumber\"j\n" +
+	"\x1cGetAccountByAccountIdRequest\x12!\n" +
+	"\auser_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x06userId\x12'\n" +
+	"\n" +
+	"account_id\x18\x02 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\taccountId\"\xa2\x01\n" +
 	"#DeleteAccountByAccountNumberRequest\x12!\n" +
 	"\auser_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x06userId\x12%\n" +
 	"\x0eaccount_number\x18\x02 \x01(\x03R\raccountNumber\x121\n" +
@@ -1087,11 +1098,12 @@ const file_account_proto_rawDesc = "" +
 	"\x1cHasSufficientBalanceResponse\x12\x1e\n" +
 	"\n" +
 	"sufficient\x18\x01 \x01(\bR\n" +
-	"sufficient2\xc3\x06\n" +
+	"sufficient2\xf9\x06\n" +
 	"\x0eAccountService\x12L\n" +
 	"\rCreateAccount\x12\x1b.proto.CreateAccountRequest\x1a\x1c.proto.CreateAccountResponse\"\x00\x12^\n" +
-	"\x13GetAccountsByUserId\x12!.proto.GetAccountsByUserIdRequest\x1a\".proto.GetAccountsByUserIdResponse\"\x00\x12p\n" +
-	"\x19GetAccountByAccountNumber\x12'.proto.GetAccountByAccountNumberRequest\x1a(.proto.GetAccountByAccountNumberResponse\"\x00\x12y\n" +
+	"\x13GetAccountsByUserId\x12!.proto.GetAccountsByUserIdRequest\x1a\".proto.GetAccountsByUserIdResponse\"\x00\x12V\n" +
+	"\x19GetAccountByAccountNumber\x12'.proto.GetAccountByAccountNumberRequest\x1a\x0e.proto.Account\"\x00\x12N\n" +
+	"\x15GetAccountByAccountId\x12#.proto.GetAccountByAccountIdRequest\x1a\x0e.proto.Account\"\x00\x12y\n" +
 	"\x1cDeleteAccountByAccountNumber\x12*.proto.DeleteAccountByAccountNumberRequest\x1a+.proto.DeleteAccountByAccountNumberResponse\"\x00\x12X\n" +
 	"\x11CreateTransaction\x12\x1f.proto.CreateTransactionRequest\x1a .proto.CreateTransactionResponse\"\x00\x12s\n" +
 	"\x1aGetTransactionsByAccountId\x12(.proto.GetTransactionsByAccountIdRequest\x1a).proto.GetTransactionsByAccountIdResponse\"\x00\x12d\n" +
@@ -1120,7 +1132,7 @@ var file_account_proto_goTypes = []any{
 	(*GetAccountsByUserIdRequest)(nil),           // 4: proto.GetAccountsByUserIdRequest
 	(*GetAccountsByUserIdResponse)(nil),          // 5: proto.GetAccountsByUserIdResponse
 	(*GetAccountByAccountNumberRequest)(nil),     // 6: proto.GetAccountByAccountNumberRequest
-	(*GetAccountByAccountNumberResponse)(nil),    // 7: proto.GetAccountByAccountNumberResponse
+	(*GetAccountByAccountIdRequest)(nil),         // 7: proto.GetAccountByAccountIdRequest
 	(*DeleteAccountByAccountNumberRequest)(nil),  // 8: proto.DeleteAccountByAccountNumberRequest
 	(*DeleteAccountByAccountNumberResponse)(nil), // 9: proto.DeleteAccountByAccountNumberResponse
 	(*CreateTransactionRequest)(nil),             // 10: proto.CreateTransactionRequest
@@ -1134,11 +1146,11 @@ var file_account_proto_goTypes = []any{
 }
 var file_account_proto_depIdxs = []int32{
 	0,  // 0: proto.GetAccountsByUserIdResponse.accounts:type_name -> proto.Account
-	0,  // 1: proto.GetAccountByAccountNumberResponse.account:type_name -> proto.Account
-	1,  // 2: proto.GetTransactionsByAccountIdResponse.transactions:type_name -> proto.Transaction
-	2,  // 3: proto.AccountService.CreateAccount:input_type -> proto.CreateAccountRequest
-	4,  // 4: proto.AccountService.GetAccountsByUserId:input_type -> proto.GetAccountsByUserIdRequest
-	6,  // 5: proto.AccountService.GetAccountByAccountNumber:input_type -> proto.GetAccountByAccountNumberRequest
+	1,  // 1: proto.GetTransactionsByAccountIdResponse.transactions:type_name -> proto.Transaction
+	2,  // 2: proto.AccountService.CreateAccount:input_type -> proto.CreateAccountRequest
+	4,  // 3: proto.AccountService.GetAccountsByUserId:input_type -> proto.GetAccountsByUserIdRequest
+	6,  // 4: proto.AccountService.GetAccountByAccountNumber:input_type -> proto.GetAccountByAccountNumberRequest
+	7,  // 5: proto.AccountService.GetAccountByAccountId:input_type -> proto.GetAccountByAccountIdRequest
 	8,  // 6: proto.AccountService.DeleteAccountByAccountNumber:input_type -> proto.DeleteAccountByAccountNumberRequest
 	10, // 7: proto.AccountService.CreateTransaction:input_type -> proto.CreateTransactionRequest
 	12, // 8: proto.AccountService.GetTransactionsByAccountId:input_type -> proto.GetTransactionsByAccountIdRequest
@@ -1146,17 +1158,18 @@ var file_account_proto_depIdxs = []int32{
 	16, // 10: proto.AccountService.HasSufficientBalance:input_type -> proto.HasSufficientBalanceRequest
 	3,  // 11: proto.AccountService.CreateAccount:output_type -> proto.CreateAccountResponse
 	5,  // 12: proto.AccountService.GetAccountsByUserId:output_type -> proto.GetAccountsByUserIdResponse
-	7,  // 13: proto.AccountService.GetAccountByAccountNumber:output_type -> proto.GetAccountByAccountNumberResponse
-	9,  // 14: proto.AccountService.DeleteAccountByAccountNumber:output_type -> proto.DeleteAccountByAccountNumberResponse
-	11, // 15: proto.AccountService.CreateTransaction:output_type -> proto.CreateTransactionResponse
-	13, // 16: proto.AccountService.GetTransactionsByAccountId:output_type -> proto.GetTransactionsByAccountIdResponse
-	15, // 17: proto.AccountService.ValidateAccountNumber:output_type -> proto.ValidateAccountNumberResponse
-	17, // 18: proto.AccountService.HasSufficientBalance:output_type -> proto.HasSufficientBalanceResponse
-	11, // [11:19] is the sub-list for method output_type
-	3,  // [3:11] is the sub-list for method input_type
-	3,  // [3:3] is the sub-list for extension type_name
-	3,  // [3:3] is the sub-list for extension extendee
-	0,  // [0:3] is the sub-list for field type_name
+	0,  // 13: proto.AccountService.GetAccountByAccountNumber:output_type -> proto.Account
+	0,  // 14: proto.AccountService.GetAccountByAccountId:output_type -> proto.Account
+	9,  // 15: proto.AccountService.DeleteAccountByAccountNumber:output_type -> proto.DeleteAccountByAccountNumberResponse
+	11, // 16: proto.AccountService.CreateTransaction:output_type -> proto.CreateTransactionResponse
+	13, // 17: proto.AccountService.GetTransactionsByAccountId:output_type -> proto.GetTransactionsByAccountIdResponse
+	15, // 18: proto.AccountService.ValidateAccountNumber:output_type -> proto.ValidateAccountNumberResponse
+	17, // 19: proto.AccountService.HasSufficientBalance:output_type -> proto.HasSufficientBalanceResponse
+	11, // [11:20] is the sub-list for method output_type
+	2,  // [2:11] is the sub-list for method input_type
+	2,  // [2:2] is the sub-list for extension type_name
+	2,  // [2:2] is the sub-list for extension extendee
+	0,  // [0:2] is the sub-list for field type_name
 }
 
 func init() { file_account_proto_init() }
