@@ -2,10 +2,14 @@ buf.build/gen/go/banking-app/account/grpc/go v1.5.1-20250710202610-9689a14fd11a.
 buf.build/gen/go/banking-app/account/grpc/go v1.5.1-20250710202610-9689a14fd11a.2/go.mod h1:aEG4Tqd6qBaRfCCxK+/b6xACSYuy60um0M3pZGYrK6g=
 buf.build/gen/go/banking-app/account/grpc/go v1.5.1-20250722020557-5c16a6b391de.2 h1:96tvZo9ekdh/CkXewbE1EH0T1xLzBrNS1qMX+JdLfy0=
 buf.build/gen/go/banking-app/account/grpc/go v1.5.1-20250722020557-5c16a6b391de.2/go.mod h1:YTxaKB3PmeX6wamGujBofGriMydzksKMoD65crS79r4=
+buf.build/gen/go/banking-app/account/grpc/go v1.5.1-20250723140732-51f35c4f46bf.2 h1:qOAx9PXWvFrfroiNhP1JJTs4uJGKqhOXtxYchUdQHmM=
+buf.build/gen/go/banking-app/account/grpc/go v1.5.1-20250723140732-51f35c4f46bf.2/go.mod h1:yGvSzrgW+voO0KRUXg67kFW2Q2VcvTNxDdtxNKcPsok=
 buf.build/gen/go/banking-app/account/protocolbuffers/go v1.36.1-20250710202610-9689a14fd11a.1 h1:kNPWx5M+LsHAudk5J3dhxv9kVcVW3gwSAhzX7DHQefI=
 buf.build/gen/go/banking-app/account/protocolbuffers/go v1.36.1-20250710202610-9689a14fd11a.1/go.mod h1:acqW9yvUh/R+vDxAax/CMeDreyGkxD10Lojt1dKyGcY=
 buf.build/gen/go/banking-app/account/protocolbuffers/go v1.36.1-20250722020557-5c16a6b391de.1 h1:7zvSufBt2gY5fX0hzAO4QuIJ1unjJFzVS7PMmW7h67s=
 buf.build/gen/go/banking-app/account/protocolbuffers/go v1.36.1-20250722020557-5c16a6b391de.1/go.mod h1:zm9IEi9Sd3VYzMx/MPgLnsDijoER926Lknl6cB4s+4M=
+buf.build/gen/go/banking-app/account/protocolbuffers/go v1.36.1-20250723140732-51f35c4f46bf.1 h1:ZRe9T/1PXtmg8hSPNQRqxdT+6AtFxnVE3nWnL7TF20c=
+buf.build/gen/go/banking-app/account/protocolbuffers/go v1.36.1-20250723140732-51f35c4f46bf.1/go.mod h1:zm9IEi9Sd3VYzMx/MPgLnsDijoER926Lknl6cB4s+4M=
 buf.build/gen/go/banking-app/auth/grpc/go v1.5.1-20250618202807-b09a22ade332.2 h1:ci6pmFSTUH7gKapDyD3HuRg0HMOI/y/Xx5F7fcorh/Y=
 buf.build/gen/go/banking-app/auth/grpc/go v1.5.1-20250618202807-b09a22ade332.2/go.mod h1:o9x8SIKoC+DMd85+baw+hOTqKHzuDgUEyKWn/aEYekM=
 buf.build/gen/go/banking-app/auth/protocolbuffers/go v1.36.6-20250618202807-b09a22ade332.1 h1:vEYK//v+QS7oC0y6v+IMuECy4nTjrpX67enTD18HLY8=

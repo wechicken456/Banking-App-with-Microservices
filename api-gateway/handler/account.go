@@ -127,19 +127,26 @@ func (h *AccountHandler) GetAccountsByUserIDHandler(w http.ResponseWriter, r *ht
 }
 
 // GetAccountByAccountNumberHandler gets a specific account by account number
-func (h *AccountHandler) GetAccountByAccountNumberHandler(w http.ResponseWriter, r *http.Request) {
+func (h *AccountHandler) GetAccountHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
 	// get account number from URL parameter
+	useId := true
+	var accountNumber int64
 	u := r.URL
 	queryParams := u.Query()
-	accountNumber, err := strconv.ParseInt(queryParams.Get("accountNumber"), 10, 64)
+	accountID, err := uuid.Parse(queryParams.Get("accountID"))
 	if err != nil {
-		http.Error(w, "invalid accountNumber", http.StatusBadRequest)
-		return
+		accountNumber, err = strconv.ParseInt(queryParams.Get("accountNumber"), 10, 64)
+		if err != nil {
+			log.Println("GetAccountHander: Invalid account number and account ID")
+			http.Error(w, "invalid arguments", http.StatusBadRequest)
+			return
+		}
+		useId = false
 	}
 
 	// get the userID from the request context (passed by AuthMiddleware)
@@ -152,16 +159,24 @@ func (h *AccountHandler) GetAccountByAccountNumberHandler(w http.ResponseWriter,
 
 	userIDBytes, err := uuid.Parse(requestingUserID)
 	if err != nil {
-		log.Printf("GetAccountByAccountNumberHandler: Failed to parse user ID: %v", err)
+		log.Printf("GetAccountByHandler: Failed to parse user ID: %v", err)
 		http.Error(w, "Invalid user ID", http.StatusBadRequest)
 		return
 	}
 
 	// use gRPC client to call the account microservice
-	res, err := h.Client.GetAccountByAccountNumber(context.Background(), &proto.GetAccountByAccountNumberRequest{
-		AccountNumber: accountNumber,
-		UserId:        userIDBytes.String(),
-	})
+	var res *proto.Account
+	if useId {
+		res, err = h.Client.GetAccountByAccountId(context.Background(), &proto.GetAccountByAccountIdRequest{
+			AccountId: accountID.String(),
+			UserId:    userIDBytes.String(),
+		})
+	} else {
+		res, err = h.Client.GetAccountByAccountNumber(context.Background(), &proto.GetAccountByAccountNumberRequest{
+			AccountNumber: accountNumber,
+			UserId:        userIDBytes.String(),
+		})
+	}
 	if err != nil {
 		log.Printf("GetAccountByAccountNumberHandler: %v", err)
 		utils.WriteGRPCErrorToHTTP(w, err)
@@ -169,10 +184,10 @@ func (h *AccountHandler) GetAccountByAccountNumberHandler(w http.ResponseWriter,
 	}
 	resp := model.GetAccountResponse{
 		Account: model.Account{
-			AccountNumber: res.Account.AccountNumber,
-			AccountID:     res.Account.AccountId,
-			Balance:       res.Account.Balance,
-			UserID:        res.Account.UserId,
+			AccountNumber: res.AccountNumber,
+			AccountID:     res.AccountId,
+			Balance:       res.Balance,
+			UserID:        res.UserId,
 		},
 	}
 
@@ -328,7 +343,7 @@ func (h *AccountHandler) GetTransactionsByAccountIDHandler(w http.ResponseWriter
 
 	userIDBytes, err := uuid.Parse(requestingUserID)
 	if err != nil {
-		log.Printf("GetAccountByAccountNumberHandler: Failed to parse user ID: %v", err)
+		log.Printf("GetTransactionsByAccountId: Failed to parse user ID: %v", err)
 		http.Error(w, "Invalid user ID", http.StatusBadRequest)
 		return
 	}
