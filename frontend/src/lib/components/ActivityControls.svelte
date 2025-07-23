@@ -71,6 +71,8 @@
 </div>
 
 <style>
+    @reference '../../app.css';
+
     .controls-container {
         @apply bg-white rounded-lg shadow-sm p-4 flex flex-wrap gap-4 mb-6;
     }

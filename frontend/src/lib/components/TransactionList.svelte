@@ -35,6 +35,9 @@
 </div>
 
 <style>
+    @reference '../../app.css';
+
+
     .transactions-container {
         @apply space-y-3;
     }

@@ -33,6 +33,7 @@
 
 <style>
     @reference "../../app.css";
+    
     .loading-container {
         @apply flex items-center justify-center min-h-screen;
     }

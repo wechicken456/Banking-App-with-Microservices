@@ -65,6 +65,8 @@
 </div>
 
 <style>
+    @reference '../../app.css';
+    
     .account-card {
         @apply bg-white rounded-lg shadow-md p-6 cursor-pointer hover:shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2;
     }

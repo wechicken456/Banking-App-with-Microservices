@@ -16,9 +16,9 @@ export interface AuthTokens {
 export interface LoginResponse {
     userId: string;
     email: string;
-    accessToken: string; 
+    accessToken: string;
     refreshToken: string;
-c    accessTokenDuration: number; // in seconds
+    accessTokenDuration: number; // in seconds
     refreshTokenDuration: number; // in seconds
 }
 

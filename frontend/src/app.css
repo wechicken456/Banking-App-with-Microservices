@@ -1,6 +1,7 @@
 @import 'tailwindcss';
 @import 'tailwindcss/preflight';
 @tailwind utilities;
+@import 'tailwindcss/utilities';
 
 @theme {
   --font-display: "Inter", system-ui, sans-serif;
