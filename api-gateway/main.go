@@ -57,10 +57,9 @@ func main() {
 			// user management
 			r.Delete("/delete-user", authHandler.DeleteUserHandler)
 			r.Post("/renew-token", authHandler.RenewAccessTokenHandler)
-
 			// account management
 			r.Get("/all-accounts", accountHandler.GetAccountsByUserIDHandler)
-			r.Get("/account", accountHandler.GetAccountByAccountNumberHandler)
+			r.Get("/account", accountHandler.GetAccountHandler)
 			r.Post("/create-account", accountHandler.CreateAccountHandler)
 			r.Post("/delete-account", accountHandler.DeleteAccountByAccountNumberHandler)
 

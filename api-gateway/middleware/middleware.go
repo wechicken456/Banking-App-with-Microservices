@@ -38,6 +38,7 @@ func AuthMiddleware(next http.Handler) http.Handler {
 		fingerprintCookie, err := r.Cookie(model.FingerprintCookieName)
 		if err != nil {
 			http.Error(w, "Invalid fingerprint cookie", http.StatusUnauthorized)
+			return
 		}
 		fingerprint := fingerprintCookie.Value
 

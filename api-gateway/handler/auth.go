@@ -55,7 +55,7 @@ func (h *AuthHandler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	fingerprintCookie := http.Cookie{
 		Name:     model.FingerprintCookieName,
 		Value:    res.Fingerprint,
-		MaxAge:   int(res.AccessTokenDuration),
+		MaxAge:   int(model.TokenShortDuration),
 		SameSite: http.SameSiteStrictMode,
 		HttpOnly: true,
 		Secure:   false, // TODO: set to true during production

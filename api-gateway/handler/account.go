@@ -333,6 +333,13 @@ func (h *AccountHandler) GetTransactionsByAccountIDHandler(w http.ResponseWriter
 		return
 	}
 
+	accountIDBytes, err := uuid.Parse(accountId)
+	if err != nil {
+		log.Printf("GetTransactionsByAccountIDHandler: Failed to parse account ID: %v", err)
+		http.Error(w, "Invalid account ID", http.StatusBadRequest)
+		return
+	}
+
 	// get the userID from the request context (passed by AuthMiddleware)
 	ctx := r.Context()
 	requestingUserID := ctx.Value(middleware.UserIDContextKey).(string)
@@ -351,7 +358,7 @@ func (h *AccountHandler) GetTransactionsByAccountIDHandler(w http.ResponseWriter
 	// use gRPC client to call the account microservice
 	res, err := h.Client.GetTransactionsByAccountId(context.Background(), &proto.GetTransactionsByAccountIdRequest{
 		UserId:    userIDBytes.String(),
-		AccountId: accountId,
+		AccountId: accountIDBytes.String(),
 	})
 	if err != nil {
 		log.Printf("GetTransactionsByAccountId: %v", err)
