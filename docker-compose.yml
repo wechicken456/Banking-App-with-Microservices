@@ -1,5 +1,61 @@
-
 services:
+  # ========================= REDIS for account microservice =====================
+  redis-single:
+    image: redis:7-alpine
+    container_name: redis-single
+    command: redis-server --save 60 1 --loglevel warning --requirepass ${REDIS_PASSWORD:-}
+    ports:
+      - "${REDIS_SINGLE_PORT}:6379"
+    profiles: ["single"]
+    networks:
+      - backend
+
+  redis-node1:
+    image: redis:7-alpine
+    container_name: redis-node1
+    command: redis-server --port 6380 --cluster-enabled yes --cluster-config-file nodes.conf --cluster-node-timeout 5000 --requirepass ${REDIS_PASSWORD:-}
+    ports:
+      - "${REDIS_CLUSTER_NODE_1_PORT}:6380"
+    profiles: ["cluster"]
+    networks:
+      - backend
+
+  redis-node2:
+    image: redis:7-alpine
+    container_name: redis-node2
+    command: redis-server --port 6381 --cluster-enabled yes --cluster-config-file nodes.conf --cluster-node-timeout 5000 --requirepass ${REDIS_PASSWORD:-}
+    ports:
+      - "${REDIS_CLUSTER_NODE_2_PORT}::6381"
+    profiles: ["cluster"]
+    networks:
+      - backend
+
+  redis-node3:
+    image: redis:7-alpine
+    container_name: redis-node3
+    command: redis-server --port 6382 --cluster-enabled yes --cluster-config-file nodes.conf --cluster-node-timeout 5000 --requirepass ${REDIS_PASSWORD:-}
+    ports:
+      - "${REDIS_CLUSTER_NODE_3_PORT}::6382"
+    profiles: ["cluster"]
+    networks:
+      - backend
+
+  redis-cluster-init:
+    image: redis:7-alpine
+    depends_on:
+      - redis-node1
+      - redis-node2
+      - redis-node3
+    profiles: ["cluster"]
+    command: >
+      sh -c "
+      sleep 5 &&
+      redis-cli --cluster create ${REDIS_CLUSTER_ADDRS} --cluster-replicas 0 -a ${REDIS_PASSWORD:-} || true
+      "
+    networks:
+      - backend
+
+  # ====================== MICROSERVICES & DATABASES =============================
   auth-db:
     image: postgres:alpine
     container_name: banking-auth-db
@@ -31,15 +87,16 @@ services:
     ports:
       - "5433:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${ACCOUNT_DB_USER} -d ${ACCOUNT_DB_NAME}"]
+      test:
+        ["CMD-SHELL", "pg_isready -U ${ACCOUNT_DB_USER} -d ${ACCOUNT_DB_NAME}"]
       interval: 10s
       timeout: 5s
-      retries: 5   
+      retries: 5
     volumes:
       - account-db_data:/var/lib/postgresql/data
     networks:
       - backend
-  
+
   transfer-db:
     image: postgres:alpine
     container_name: banking-transfer-db
@@ -51,7 +108,11 @@ services:
     ports:
       - "5434:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${TRANSFER_DB_USER} -d ${TRANSFER_DB_NAME}"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${TRANSFER_DB_USER} -d ${TRANSFER_DB_NAME}",
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -65,7 +126,7 @@ services:
       context: ./auth
     container_name: auth-service
     depends_on:
-      auth-db: {condition: service_healthy}
+      auth-db: { condition: service_healthy }
     environment:
       GRPC_PORT: ${AUTH_GRPC_PORT}
       AUTH_DB_HOST: banking-auth-db
@@ -84,7 +145,7 @@ services:
       context: ./account
     container_name: account-service
     depends_on:
-      account-db: {condition: service_healthy}
+      account-db: { condition: service_healthy }
     environment:
       GRPC_PORT: ${ACCOUNT_GRPC_PORT}
       ACCOUNT_DB_HOST: banking-account-db
@@ -92,6 +153,11 @@ services:
       ACCOUNT_DB_USER: ${ACCOUNT_DB_USER}
       ACCOUNT_DB_PASSWORD: ${ACCOUNT_DB_PASSWORD}
       ACCOUNT_DB_NAME: ${ACCOUNT_DB_NAME}
+      REDIS_MODE: ${REDIS_MODE}
+      REDIS_SINGLE_ADDR: ${REDIS_SINGLE_ADDR}
+      REDIS_SINGLE_PORT: ${REDIS_SINGLE_PORT}
+      REDIS_CLUSTER_ADDRS: ${REDIS_CLUSTER_ADDRS}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
     ports:
       - "${ACCOUNT_GRPC_PORT}:${ACCOUNT_GRPC_PORT}"
     networks:
@@ -112,18 +178,10 @@ services:
     networks:
       - backend
 
-      
-
-  
-  
-
 volumes:
   auth-db_data:
   account-db_data:
   transfer-db_data:
 
-
 networks:
   backend:
-
-
