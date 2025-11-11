@@ -6,8 +6,8 @@
 API_GW="http://localhost:18000"
 N_USERS=50
 READS_PER_USER=3
-DEPOSITS_PER_USER=100
-DURATION="10s"
+DEPOSITS_PER_USER=1
+DURATION="30s"
 JWT_FILE="jwts.txt"
 READ_TARGETS="read_targets.txt"
 DEPOSIT_TARGETS="deposit_targets.txt"

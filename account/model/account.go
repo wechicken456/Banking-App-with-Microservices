@@ -2,6 +2,7 @@ package model
 
 import (
 	"github.com/google/uuid"
+	"github.com/redis/go-redis/v9"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -40,4 +41,5 @@ var (
 	ErrInvalidArgument  error = status.Error(codes.InvalidArgument, "invalid argument")
 	ErrNotAuthorized    error = status.Error(codes.PermissionDenied, "not authorized")
 	ErrNotAuthenticated error = status.Error(codes.Unauthenticated, "not authenticated")
+	ErrCacheMiss        error = redis.Nil
 )

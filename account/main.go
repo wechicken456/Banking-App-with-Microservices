@@ -3,9 +3,11 @@ package main
 import (
 	"account/db/initialize"
 	"account/handler"
+	"account/internal/redis"
 	"account/proto"
 	"account/repository"
 	"account/service"
+	"context"
 	"fmt"
 	"log"
 	"net"
@@ -22,6 +24,9 @@ func main() {
 	accountRepo := repository.NewAccountRepository(db)
 	if accountRepo == nil {
 		log.Fatalf("Failed to create account repository")
+	}
+	if err := redis.Init(context.Background()); err != nil {
+		log.Fatalf("Failed to init Redis: %s", err)
 	}
 	accountService := service.NewAccountService(accountRepo, db)
 	if accountService == nil {

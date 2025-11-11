@@ -1,6 +1,7 @@
 package service
 
 import (
+	"account/internal/cache"
 	"account/model"
 	"account/repository"
 	"context"
@@ -133,6 +134,16 @@ func (s *AccountService) createAccountTx(ctx context.Context, user *model.User, 
 
 // userID is the ID of the user who initiated the request
 func (s *AccountService) GetAccount(ctx context.Context, accountID uuid.UUID, userID uuid.UUID) (*model.Account, error) {
+	var err error
+	if cachedAcct, err := cache.Get(ctx, accountID); err == nil {
+		if cachedAcct.UserID != userID {
+			return nil, model.ErrNotAuthorized
+		}
+		log.Printf("\n\nCache hit!\n\n")
+		return cachedAcct, nil
+	}
+	log.Printf("Error hitting cache: %v", err)
+
 	account, err := s.repo.GetAccountByID(ctx, accountID)
 	if err != nil {
 		log.Printf("GetAccount: Failed to get accounts: %v\n", err)
@@ -148,6 +159,11 @@ func (s *AccountService) GetAccount(ctx context.Context, accountID uuid.UUID, us
 		return nil, model.ErrNotAuthorized
 	}
 
+	err = cache.Set(ctx, account)
+	log.Printf("\n\nCache miss. Populating cache: %v\n", err)
+	if err != nil {
+		log.Printf("Error populating cache: %v", err)
+	}
 	return account, nil
 }
 
@@ -285,6 +301,7 @@ func (s *AccountService) deleteAccountByAccountNumberTx(ctx context.Context, acc
 		log.Printf("deleteAccountByAccountNumberTx: Failed to commit transaction: %v\n", err)
 		return model.ErrInternalServer
 	}
+	go cache.Invalidate(ctx, account.AccountID)
 	return nil
 }
 
@@ -365,6 +382,8 @@ func (s *AccountService) CreateTransaction(ctx context.Context, transaction *mod
 	for attempt = range maxRetries {
 		res, err = s.createTransactionTx(ctx, transaction, idempotencyKey, userID)
 		if err == nil {
+			// invalidate cache
+			go cache.Invalidate(ctx, transaction.AccountID)
 			return res, nil
 		}
 		// Check for serialization failure (Postgres error code 40001: https://www.postgresql.org/docs/current/mvcc-serialization-failure-handling.html)
@@ -481,6 +500,7 @@ func (s *AccountService) createTransactionTx(ctx context.Context, transaction *m
 		log.Printf("createTransactionTx: Failed to commit transaction: %v\n", err)
 		return nil, model.ErrInternalServer
 	}
+
 	return createdTransaction, nil
 }
 
