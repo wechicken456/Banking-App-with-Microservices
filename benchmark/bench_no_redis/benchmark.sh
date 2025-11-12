@@ -4,10 +4,11 @@
 
 # ============= CONFIG =================
 API_GW="http://localhost:18000"
-N_USERS=50
-READS_PER_USER=3
-DEPOSITS_PER_USER=100
+N_USERS=100
+READS_PER_USER=10
+DEPOSITS_PER_USER=10
 DURATION="10s"
+WARM_UP_DURATION="2s"
 JWT_FILE="jwts.txt"
 READ_TARGETS="read_targets.txt"
 DEPOSIT_TARGETS="deposit_targets.txt"
@@ -107,13 +108,19 @@ done <$JWT_FILE
 
 # ================= Run benchmarks =========================
 echo ""
-echo "=== BALANCE READ (CACHE) ==="
-vegeta attack -targets=$READ_TARGETS -duration=$DURATION -workers=$N_USERS >bench_read.bin
+echo "=== CACHE WARM UP ==="
+while IFS='|' read -r JWT FP ACC_ID ACC_NUM; do
+    curl -s -o /dev/null -H "Authorization: Bearer $JWT" -b"fingerprint=$FP" "$API_GW/api/account?accountID=$ACC_ID" &
+done <$JWT_FILE
+
+echo ""
+echo "=== BALANCE READ ==="
+vegeta attack -targets=$READ_TARGETS -duration=$DURATION >bench_read.bin
 vegeta report -type=json bench_read.bin >bench_read.json
 echo "Results saved to bench_read.json"
 
 echo ""
-echo "=== DEPOSIT (WRITE + INVALIDATION) ==="
-vegeta attack -targets=$DEPOSIT_TARGETS -duration=$DURATION -workers=$N_USERS >bench_write.bin
+echo "=== DEPOSIT (WRITE) ==="
+vegeta attack -targets=$DEPOSIT_TARGETS -duration=$DURATION >bench_write.bin
 vegeta report -type=json bench_write.bin >bench_write.json
 echo "Results saved to bench_write.json"
