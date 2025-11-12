@@ -29,3 +29,5 @@ go.work.sum
 
 benchmark/**/*.json
 benchmark/**/*.txt
+benchmark/**/*.bin
+benchmark/**/*.html

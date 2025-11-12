@@ -1,4 +1,37 @@
 services:
+  toxiproxy:
+    image: ghcr.io/shopify/toxiproxy
+    container_name: toxiproxy
+    depends_on:
+      account-db:
+        condition: service_healthy
+
+    ports:
+      - "8474:8474"
+      - "9999:5432"
+    networks:
+      - backend
+
+  toxiproxy-setup:
+    image: curlimages/curl:latest
+    volumes:
+      - ./setup-latency.sh:/app/setup-latency.sh
+    command: >
+      sh -c "
+        # 1. Wait for Toxiproxy to be ready 
+        until curl -s http://toxiproxy:8474/proxies; do 
+          echo 'Waiting for Toxiproxy server...'; 
+          sleep 1; 
+        done &&
+        # 2. Execute setup script
+        sh /app/setup-latency.sh
+      "
+    depends_on:
+      toxiproxy:
+        condition: service_started
+    networks:
+      - backend
+
   # ========================= REDIS for account microservice =====================
   redis-single:
     image: redis:7-alpine
@@ -146,9 +179,11 @@ services:
     container_name: account-service
     depends_on:
       account-db: { condition: service_healthy }
+      toxiproxy-setup: { condition: service_completed_successfully }
     environment:
       GRPC_PORT: ${ACCOUNT_GRPC_PORT}
-      ACCOUNT_DB_HOST: banking-account-db
+      #ACCOUNT_DB_HOST: banking-account-db
+      ACCOUNT_DB_HOST: toxiproxy
       ACCOUNT_DB_PORT: 5432
       ACCOUNT_DB_USER: ${ACCOUNT_DB_USER}
       ACCOUNT_DB_PASSWORD: ${ACCOUNT_DB_PASSWORD}
