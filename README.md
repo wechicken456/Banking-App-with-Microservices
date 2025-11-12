@@ -9,6 +9,7 @@ Banking App written in **Golang** to learn about implementation of microservices
 1. Finished setting up PostgreSQL on **docker**.
 2. Finished most features for account and auth microservices (including JWT auth). 
 3. Finished gRPC for the `auth` microservice. Setting up gRPC for the `account` microservice.
+4. Added redis integration and benchmark for the `GetAccount` path. 
 
 
 Check [JOURNAL.md](./JOURNAL.md) for a more detailed 
@@ -45,6 +46,9 @@ Check [JOURNAL.md](./JOURNAL.md) for a more detailed
   - Saga pattern used for distributed operations (e.g., fund transfers)  
   - Outbox pattern ensures eventual message delivery  
   - Idempotency keys prevent duplicate processing
+
+- **Caching**:
+  - Redis for the hot path `GetAccount`.
 
 ---
 
