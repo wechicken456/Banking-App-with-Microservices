@@ -5,6 +5,7 @@ import (
 	"account/model"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
@@ -13,7 +14,7 @@ import (
 
 const (
 	AccountKeyPrefix = "acct"
-	TTL              = 2 * time.Second
+	TTL              = 5 * time.Second
 )
 
 func AccountKey(accountID uuid.UUID) string {
@@ -23,8 +24,8 @@ func AccountKey(accountID uuid.UUID) string {
 func Get(ctx context.Context, accountID uuid.UUID) (*model.Account, error) {
 	key := AccountKey(accountID)
 	data, err := redis.Client.Get(ctx, key).Bytes()
-	if err == model.ErrCacheMiss {
-		return nil, err
+	if errors.Is(err, model.ErrCacheMiss) {
+		return nil, model.ErrCacheMiss
 	} else if err != nil {
 		return nil, err
 	}

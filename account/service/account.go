@@ -7,6 +7,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"log"
 	"time"
 
@@ -135,14 +136,21 @@ func (s *AccountService) createAccountTx(ctx context.Context, user *model.User, 
 // userID is the ID of the user who initiated the request
 func (s *AccountService) GetAccount(ctx context.Context, accountID uuid.UUID, userID uuid.UUID) (*model.Account, error) {
 	var err error
-	if cachedAcct, err := cache.Get(ctx, accountID); err == nil {
+
+	cachedAcct, err := cache.Get(ctx, accountID)
+	if err == nil {
 		if cachedAcct.UserID != userID {
 			return nil, model.ErrNotAuthorized
 		}
 		log.Printf("\n\nCache hit!\n\n")
 		return cachedAcct, nil
 	}
-	log.Printf("Error hitting cache: %v", err)
+
+	if errors.Is(err, model.ErrCacheMiss) {
+		log.Printf("Cache miss for accountID: %s", accountID)
+	} else {
+		log.Printf("Error hitting cache: %s", err)
+	}
 
 	account, err := s.repo.GetAccountByID(ctx, accountID)
 	if err != nil {
@@ -158,6 +166,8 @@ func (s *AccountService) GetAccount(ctx context.Context, accountID uuid.UUID, us
 		log.Printf("GetAccount: Unauthorized access attempt for account id %v by user %v\n", accountID, userID)
 		return nil, model.ErrNotAuthorized
 	}
+
+	time.Sleep(50 * time.Millisecond) // sleep to simulate high network latency during benchmark
 
 	err = cache.Set(ctx, account)
 	log.Printf("\n\nCache miss. Populating cache: %v\n", err)
